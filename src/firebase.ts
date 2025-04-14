@@ -18,7 +18,28 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
+// Initialize services
 export const db = getDatabase(app);
 export const auth = getAuth(app);
 
-export default app;
+// For backwards compatibility with modules using "firebase"
+const firebase = {
+  database: () => ({
+    ref: (path: string) => ({
+      on: (event: string, callback: Function) => {
+        console.log(`Firebase mock: on ${event} for ${path}`);
+        // Implementation would connect to Realtime Database
+      },
+      off: () => {
+        console.log(`Firebase mock: off for ${path}`);
+      },
+      push: (data: any) => {
+        console.log(`Firebase mock: push to ${path}`, data);
+        // Implementation would push to Realtime Database
+        return { key: 'mock-key-' + Date.now() };
+      }
+    })
+  })
+};
+
+export default firebase;

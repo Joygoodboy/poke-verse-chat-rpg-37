@@ -1,5 +1,17 @@
+
 // Command utilities for the Pokemon game
+import { StorageManager } from "../components/storageManager";
+
 export const createCommandSystem = (gameData, setGameData) => {
+  const storageManager = new StorageManager();
+
+  // Save game data after every command that modifies state
+  const saveGameDataAfterCommand = () => {
+    setTimeout(() => {
+      storageManager.saveGameData(gameData);
+    }, 100);
+  };
+
   // Enhanced slot command with improved feedback and cooldown
   const slotCommand = () => {
     const betAmount = 50;
@@ -26,11 +38,15 @@ export const createCommandSystem = (gameData, setGameData) => {
 
     const winAmount = betAmount * multiplier;
     
-    setGameData(prev => ({
-      ...prev,
-      wallet: prev.wallet - betAmount + winAmount,
-      lastSlotPlay: now
-    }));
+    setGameData(prev => {
+      const updated = {
+        ...prev,
+        wallet: prev.wallet - betAmount + winAmount,
+        lastSlotPlay: now
+      };
+      storageManager.saveGameData(updated);
+      return updated;
+    });
 
     return `🎰 | ${result.join(' | ')} | 🎰 ${multiplier > 0 ? `\nYou won ${winAmount} coins!` : '\nBetter luck next time!'}`;
   };
@@ -52,11 +68,15 @@ export const createCommandSystem = (gameData, setGameData) => {
         if (parsedAmount > gameData.wallet) {
           return "Insufficient funds in wallet.";
         }
-        setGameData(prev => ({
-          ...prev,
-          wallet: prev.wallet - parsedAmount,
-          bank: prev.bank + parsedAmount
-        }));
+        setGameData(prev => {
+          const updated = {
+            ...prev,
+            wallet: prev.wallet - parsedAmount,
+            bank: prev.bank + parsedAmount
+          };
+          storageManager.saveGameData(updated);
+          return updated;
+        });
         return `Successfully deposited ${parsedAmount} coins.`;
 
       case 'withdraw':
@@ -66,11 +86,15 @@ export const createCommandSystem = (gameData, setGameData) => {
         if (parsedAmount > gameData.bank) {
           return "Insufficient funds in bank.";
         }
-        setGameData(prev => ({
-          ...prev,
-          bank: prev.bank - parsedAmount,
-          wallet: prev.wallet + parsedAmount
-        }));
+        setGameData(prev => {
+          const updated = {
+            ...prev,
+            bank: prev.bank - parsedAmount,
+            wallet: prev.wallet + parsedAmount
+          };
+          storageManager.saveGameData(updated);
+          return updated;
+        });
         return `Successfully withdrew ${parsedAmount} coins.`;
 
       case 'interest':
@@ -86,11 +110,15 @@ export const createCommandSystem = (gameData, setGameData) => {
         
         const interestRate = 0.05; // 5% daily interest
         const interestAmount = Math.floor(gameData.bank * interestRate);
-        setGameData(prev => ({
-          ...prev,
-          bank: prev.bank + interestAmount,
-          lastInterestClaim: now
-        }));
+        setGameData(prev => {
+          const updated = {
+            ...prev,
+            bank: prev.bank + interestAmount,
+            lastInterestClaim: now
+          };
+          storageManager.saveGameData(updated);
+          return updated;
+        });
         return `You earned ${interestAmount} coins in interest!`;
 
       default:
@@ -234,6 +262,15 @@ Use /buy [item] to purchase.`;
     const reason = args.slice(1).join(" ") || "No reason provided";
     
     // In a real implementation, this would interact with a database
+    setGameData(prev => {
+      const updated = {
+        ...prev,
+        bannedUsers: [...(prev.bannedUsers || []), targetUser]
+      };
+      storageManager.saveGameData(updated);
+      return updated;
+    });
+    
     return `User ${targetUser} has been banned. Reason: ${reason}`;
   };
 
@@ -249,19 +286,27 @@ Use /buy [item] to purchase.`;
     
     const targetUser = args[0];
     
-    // In a real implementation, this would interact with a database
+    setGameData(prev => {
+      const updated = {
+        ...prev,
+        bannedUsers: (prev.bannedUsers || []).filter(user => user.toLowerCase() !== targetUser.toLowerCase())
+      };
+      storageManager.saveGameData(updated);
+      return updated;
+    });
+    
     return `User ${targetUser} has been unbanned.`;
   };
 
   // Owner command to display owners
   const ownerCommand = () => {
-    const owners = gameData.owners || ["Ash", "Misty", "Brock"];
+    const owners = gameData.owners || ["Ash", "admin@pokemon.com", "owner@pokemon.com"];
     return `👑 Game Owners: ${owners.join(", ")}`;
   };
 
   // Mods command to display moderators
   const modsCommand = () => {
-    const mods = gameData.mods || ["Gary", "Professor Oak"];
+    const mods = gameData.mods || ["Gary", "Professor Oak", "mod@pokemon.com"];
     return `🛡️ Game Moderators: ${mods.join(", ")}`;
   };
 
@@ -389,6 +434,7 @@ export const formatCommandOutput = (output) => {
 
 // Helper function to check if a user has admin privileges
 export const isAdminUser = (username, owners = [], admins = []) => {
+  if (!username) return false;
   const lowerUsername = username.toLowerCase();
   return owners.some(owner => owner.toLowerCase() === lowerUsername) || 
          admins.some(admin => admin.toLowerCase() === lowerUsername);
@@ -396,6 +442,7 @@ export const isAdminUser = (username, owners = [], admins = []) => {
 
 // Helper function to check if a user is an owner
 export const isOwnerUser = (username, owners = []) => {
+  if (!username) return false;
   const lowerUsername = username.toLowerCase();
   return owners.some(owner => owner.toLowerCase() === lowerUsername);
 };

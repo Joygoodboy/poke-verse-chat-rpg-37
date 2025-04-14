@@ -1,9 +1,13 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { createCommandSystem, formatCommandOutput } from '../utils/gameCommands';
+import { StorageManager } from './storageManager';
 
 // Pokemon game component with all enhanced commands
 const PokemonGame = () => {
+  const storageManager = useRef(new StorageManager()).current;
+  
+  // Initialize game data state with defaults
   const [gameData, setGameData] = useState({
     inventory: { pokeball: 3, greatball: 1, ultraball: 0, masterball: 0 },
     wallet: 500,
@@ -22,24 +26,38 @@ const PokemonGame = () => {
       symbols: ['🍒', '💎', '7️⃣', '🎰', '⭐'],
       jackpot: 1000,
     },
+    owners: ["Ash", "admin@pokemon.com", "owner@pokemon.com"],
+    mods: ["Gary", "Professor Oak", "mod@pokemon.com"],
   });
 
   const [commandHistory, setCommandHistory] = useState([]);
   const [inputCommand, setInputCommand] = useState('');
   const commandSystemRef = useRef(null);
   const commandHistoryRef = useRef(null);
+  const [username, setUsername] = useState('');
 
   // Initialize command system
   useEffect(() => {
     commandSystemRef.current = createCommandSystem(gameData, setGameData);
   }, [gameData]);
 
+  // Load username
+  useEffect(() => {
+    const storedUsername = localStorage.getItem('loggedInUser');
+    if (storedUsername) {
+      setUsername(storedUsername);
+    }
+  }, []);
+
   // Load saved data on component mount
   useEffect(() => {
-    const savedData = localStorage.getItem('pokemonGameData');
+    const savedData = storageManager.loadGameData();
     if (savedData) {
       try {
-        setGameData(JSON.parse(savedData));
+        setGameData(prevData => ({
+          ...prevData,
+          ...savedData
+        }));
         addToHistory('System', 'Loaded saved game data.');
       } catch (error) {
         console.error('Error loading saved data:', error);
@@ -48,13 +66,13 @@ const PokemonGame = () => {
     }
   }, []);
 
-  // Auto-save game data
+  // Auto-save game data whenever gameData changes
   useEffect(() => {
-    const saveInterval = setInterval(() => {
-      localStorage.setItem('pokemonGameData', JSON.stringify(gameData));
-    }, 60000); // Auto-save every minute
+    const saveTimeout = setTimeout(() => {
+      storageManager.saveGameData(gameData);
+    }, 2000); // Save after 2 seconds of inactivity
 
-    return () => clearInterval(saveInterval);
+    return () => clearTimeout(saveTimeout);
   }, [gameData]);
 
   // Scroll to bottom when command history updates
@@ -86,9 +104,15 @@ const PokemonGame = () => {
     const commandName = commandParts[0].toLowerCase().replace('/', '');
     const args = commandParts.slice(1);
 
+    // Check user permissions for admin commands
+    const userData = {
+      isAdmin: storageManager.isAdminUser(username, gameData.owners, gameData.mods),
+      isOwner: storageManager.isOwnerUser(username, gameData.owners)
+    };
+
     // Check if the command exists in our command system
     if (commandSystemRef.current && commandSystemRef.current[commandName]) {
-      const response = commandSystemRef.current[commandName](args);
+      const response = commandSystemRef.current[commandName](args, userData);
       addToHistory('System', response);
     } else if (commandName === 'help') {
       addToHistory('System', `📖 Available Commands:
