@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Globe, Swords, Users, Gift, GameController } from "lucide-react";
+import { Globe, Swords, Users, Gift, Gamepad } from "lucide-react";
 
 const Home = () => {
   const [username, setUsername] = useState<string>("");
@@ -11,7 +10,6 @@ const Home = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check if user is already logged in
     const storedUsername = localStorage.getItem("loggedInUser");
     if (storedUsername) {
       setUsername(storedUsername);
@@ -32,7 +30,6 @@ const Home = () => {
   };
 
   const handleGuestClick = () => {
-    // Generate a guest username
     const guestName = "Guest" + Math.floor(Math.random() * 1000);
     localStorage.setItem("loggedInUser", guestName);
     setUsername(guestName);
@@ -42,7 +39,6 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex flex-col">
-      {/* Header */}
       <header className="bg-blue-600 p-4 text-white">
         <div className="container mx-auto flex justify-between items-center">
           <div className="flex items-center space-x-2">
@@ -64,7 +60,6 @@ const Home = () => {
         </div>
       </header>
 
-      {/* Navigation */}
       <nav className="bg-blue-500 p-2 text-white">
         <div className="container mx-auto">
           <div className="flex space-x-2">
@@ -78,7 +73,6 @@ const Home = () => {
         </div>
       </nav>
 
-      {/* Main Content */}
       <main className="flex-grow container mx-auto p-4">
         {isLoggedIn ? (
           <div className="mt-8">
@@ -130,7 +124,7 @@ const Home = () => {
               </Card>
               <Card className="p-6 bg-blue-300/30 backdrop-blur-sm text-white flex flex-col items-center" onClick={handleFusionLabClick}>
                 <div className="mb-2 text-white">
-                  <GameController size={32} />
+                  <Gamepad size={32} />
                 </div>
                 <h3 className="text-lg font-bold mb-1">Fusion Lab</h3>
                 <p className="text-center text-sm">Create unique Pokémon combinations</p>
@@ -215,7 +209,7 @@ const Home = () => {
               <p className="text-center text-sm">Log in daily to receive special items and rare Pokémon.</p>
             </div>
             <div className="bg-blue-300/30 p-6 rounded-lg flex flex-col items-center">
-              <GameController className="text-green-300 mb-3" size={40} />
+              <Gamepad className="text-green-300 mb-3" size={40} />
               <h3 className="text-lg font-bold mb-2">Mini-Games</h3>
               <p className="text-center text-sm">Enjoy fun mini-games and earn rewards to help your adventure.</p>
             </div>
@@ -229,7 +223,6 @@ const Home = () => {
         </section>
       </main>
 
-      {/* Footer */}
       <footer className="bg-blue-800 text-white p-4">
         <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
