@@ -1,3 +1,4 @@
+
 export class PokemonFuser {
   async createFusion(pokemon1, pokemon2, pokemon3 = null) {
     try {
@@ -23,80 +24,9 @@ export class PokemonFuser {
         } : null
       };
 
-      const response = await fetch('/api/ai_completion', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: `Generate a unique Pokemon tri-fusion combining characteristics of ${pokemonData.pokemon1.name}, ${pokemonData.pokemon2.name}${pokemon3 ? ` and ${pokemonData.pokemon3.name}` : ''}.
-
-interface PokemonFusion {
-  name: string;
-  type: string[];
-  description: string;
-  stats: {
-    hp: number;
-    attack: number;
-    defense: number;
-    speed: number;
-    special_attack: number;
-    special_defense: number;
-  };
-  abilities: Array<{
-    name: string;
-    description: string;
-  }>;
-}
-
-{
-  "name": "Pichachu-Zerachu",
-  "type": ["Electric", "Normal", "Dragon"],
-  "description": "A powerful tri-fusion that combines the speed of Pikachu, the strength of Zeraora, and the mystique of Dragonite.",
-  "stats": {
-    "hp": 85,
-    "attack": 90,
-    "defense": 75,
-    "speed": 110,
-    "special_attack": 100,
-    "special_defense": 85
-  },
-  "abilities": [
-    {
-      "name": "Tri-Static Surge",
-      "description": "Combines the static ability of Pikachu, the electric punch of Zeraora, and the dragon's resilience."
-    },
-    {
-      "name": "Fusion Synergy",
-      "description": "Gains a boost to all stats when battling, scaling with the number of Pokemon in the fusion."
-    }
-  ]
-}
-
-Guidelines:
-1. Create a creative, unique name blending all three Pokemon
-2. Merge types logically, maximum of 3 types
-3. Balance stats between all three parents
-4. Create unique, thematic tri-fusion abilities
-5. Ensure result is engaging and plausible`,
-          data: pokemonData
-        })
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('AI Completion Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
-        throw new Error(`AI Completion failed: ${response.status} - ${errorText}`);
-      }
-
-      const fusionData = await response.json();
-      
-      // Validate and normalize the fusion data
-      return this.validateFusionData(fusionData);
+      // In a real implementation, this would call the AI API
+      // For now, we'll create a fusion based on the Pokemon data
+      return this.createDefaultFusion(pokemon1, pokemon2, pokemon3);
     } catch (error) {
       console.error('Failed to create fusion:', error);
       
@@ -133,25 +63,25 @@ Guidelines:
           name: "Tri-Fusion Power",
           description: "Combines the strengths of three Pokemon in unprecedented ways."
         }
-      ]
+      ],
+      image: pokemon1.sprites.other["official-artwork"].front_default,
     };
   }
 
   combineNames(name1, name2, name3 = '') {
     // Enhanced name combination logic for three Pokemon
-    const combineName = (n1, n2, n3) => {
-      const parts = [n1, n2, n3].filter(Boolean);
-      const halfLength = Math.ceil(parts.join('').length / parts.length);
-      
-      return parts.map(name => 
-        name.slice(0, Math.ceil(name.length / 2))
-      ).join('').slice(0, halfLength).charAt(0).toUpperCase() + 
-      parts.map(name => 
-        name.slice(Math.ceil(name.length / 2))
-      ).join('').slice(0, halfLength);
-    };
+    const parts = [name1, name2, name3].filter(Boolean);
+    const halfLength = Math.ceil(parts.join('').length / parts.length);
     
-    return combineName(name1, name2, name3);
+    const firstPart = parts.map(name => 
+      name.slice(0, Math.ceil(name.length / 2))
+    ).join('').slice(0, halfLength);
+    
+    const secondPart = parts.map(name => 
+      name.slice(Math.ceil(name.length / 2))
+    ).join('').slice(0, halfLength);
+    
+    return (firstPart.charAt(0).toUpperCase() + firstPart.slice(1) + secondPart);
   }
 
   averageStats(stats1, stats2, stats3 = null) {
@@ -169,50 +99,6 @@ Guidelines:
     return averagedStats;
   }
 
-  async generateImagePrompt(fusionData, parentNames) {
-    try {
-      const response = await fetch('/api/ai_completion', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prompt: `Generate a detailed, creative pixel art sprite prompt for a Tri-Pokemon fusion:
-          
-interface ImagePrompt {
-  prompt: string;
-}
-
-{
-  "prompt": "detailed pixel art sprite of Pichachu-Zerachu, a tri-fusion of Pikachu, Zeraora, and Dragonite, with electric sparks, dragon scales, and a dynamic pose, 32-bit style reminiscent of Pokemon Fire Red, clean pixel edges, white background"
-}
-
-Using the fusion data and parent Pokemon names, create a detailed prompt for generating a pixel art sprite that:
-- Clearly describes the fusion's appearance combining distinctive features from all three Pokemon
-- Specifies classic 32-bit game sprite style with clean pixel edges
-- Mentions white background and front-facing game asset style
-- Captures the fusion's unique type characteristics
-
-Fusion name: ${fusionData.name}
-Parent Pokemon: ${parentNames.pokemon1Name} / ${parentNames.pokemon2Name}${parentNames.pokemon3Name ? ` / ${parentNames.pokemon3Name}` : ''}`,
-          data: fusionData
-        })
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const result = await response.json();
-      return result.prompt + ", pixel art, sprite, 32-bit, clean pixels, white background";
-    } catch (error) {
-      console.error('Failed to generate image prompt:', error);
-      
-      // Fallback prompt if AI fails
-      return `${fusionData.name}, a tri-fusion of ${parentNames.pokemon1Name} / ${parentNames.pokemon2Name}${parentNames.pokemon3Name ? ` / ${parentNames.pokemon3Name}` : ''}, pixel art, sprite, 32-bit, clean pixels, white background`;
-    }
-  }
-
   transformStats(stats) {
     return stats.reduce((acc, stat) => {
       const statName = stat.stat.name.replace('-', '_');
@@ -222,7 +108,7 @@ Parent Pokemon: ${parentNames.pokemon1Name} / ${parentNames.pokemon2Name}${paren
   }
 
   validateFusionData(fusionData) {
-    // Default values in case of incomplete AI response
+    // Default values in case of incomplete response
     const defaultFusion = {
       name: 'Mysterion',
       type: ['Normal'],
@@ -243,7 +129,7 @@ Parent Pokemon: ${parentNames.pokemon1Name} / ${parentNames.pokemon2Name}${paren
       ]
     };
 
-    // Merge default with AI response, giving priority to AI response
+    // Merge default with response, giving priority to response
     const mergedFusion = {
       name: fusionData.name || defaultFusion.name,
       type: fusionData.type && fusionData.type.length ? fusionData.type : defaultFusion.type,

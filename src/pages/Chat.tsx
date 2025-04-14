@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Send, Award, User, Wallet, Package, Sword, Gift, HelpCircle } from "lucide-react";
+import { ChevronLeft, Send, Award, User, Wallet, Bank, Package, Gamepad, Gift, HelpCircle } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onChildAdded, push } from "firebase/database";
 
@@ -13,7 +13,7 @@ const Chat = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [username, setUsername] = useState<string>("");
   const [playerData, setPlayerData] = useState({
-    inventory: { pokeball: 3, greatball: 1, ultraball: 0, masterball: 0 },
+    inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
     wallet: 500,
     bank: 0,
     party: [],
@@ -191,7 +191,6 @@ const Chat = () => {
         );
         break;
     
-      // Add implementations for other commands like in your original code
       case "/catch":
         if (!playerData.lastSpawn) {
           broadcast("No Pokémon to catch!");
@@ -282,8 +281,9 @@ const Chat = () => {
         }
         break;
       
-      // Add more command implementations as needed...
-      // You can add the rest of the commands following the pattern above
+      default:
+        // Command not recognized, broadcast as regular message
+        break;
     }
     
     setMessage("");
@@ -367,7 +367,6 @@ const Chat = () => {
           <Button 
             variant="outline"
             size="sm"
-
             className="bg-green-500/30 text-white border-green-400 hover:bg-green-600/50"
             onClick={() => handleCommandButton("/spawn")}
           >
@@ -433,69 +432,78 @@ const Chat = () => {
         </div>
       </div>
       
-      {/* Right sidebar - Player Stats */}
-      <div className="hidden md:block w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-l border-blue-300">
-        {/* Player Info */}
-        <Card className="bg-blue-400/30 backdrop-blur-sm p-4 mb-4 text-white">
-          <h2 className="font-bold mb-2 flex items-center">
-            <User className="mr-2" size={16} /> {username}
+      {/* Right sidebar - Player Stats - Enhanced to match the image */}
+      <div className="hidden md:flex flex-col w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-l border-blue-300 gap-4">
+        {/* Player Info Card */}
+        <Card className="bg-yellow-100 border-2 border-yellow-300 p-4 text-blue-900">
+          <h2 className="font-bold mb-3 flex items-center text-lg">
+            <User className="mr-2" size={18} /> {username}
           </h2>
-          <div className="flex justify-between items-center mb-1">
-            <span className="flex items-center">
-              <Wallet size={14} className="mr-1" /> Wallet
+          <div className="flex justify-between items-center mb-2">
+            <span className="flex items-center text-red-500 font-medium">
+              <Wallet size={16} className="mr-2 text-red-500" /> Wallet
             </span>
-            <span>{playerData.wallet} ₽</span>
+            <span className="font-bold">{playerData.wallet} ₽</span>
           </div>
           <div className="flex justify-between items-center">
-            <span>Bank</span>
-            <span>{playerData.bank} ₽</span>
+            <span className="flex items-center text-blue-500 font-medium">
+              <Bank size={16} className="mr-2 text-blue-500" /> Bank
+            </span>
+            <span className="font-bold">{playerData.bank} ₽</span>
           </div>
         </Card>
         
-        {/* Inventory */}
-        <Card className="bg-blue-400/30 backdrop-blur-sm p-4 mb-4 text-white">
-          <h2 className="font-bold mb-2 flex items-center">
-            <Package className="mr-2" size={16} /> Inventory
+        {/* Inventory Card */}
+        <Card className="bg-blue-100 border-2 border-blue-300 p-4 text-blue-900">
+          <h2 className="font-bold mb-3 flex items-center text-lg">
+            <Package className="mr-2" size={18} /> Inventory
           </h2>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="text-sm space-y-2">
             <div className="flex items-center">
-              <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>
-              <span>Pokéballs: {playerData.inventory.pokeball}</span>
+              <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+              <span className="mr-1">Pokéballs:</span>
+              <span className="font-bold">{playerData.inventory.pokeball}</span>
             </div>
             <div className="flex items-center">
-              <span className="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2"></span>
-              <span>Great: {playerData.inventory.greatball}</span>
+              <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+              <span className="mr-1">Great:</span>
+              <span className="font-bold">{playerData.inventory.greatball}</span>
             </div>
             <div className="flex items-center">
-              <span className="inline-block w-3 h-3 rounded-full bg-black mr-2"></span>
-              <span>Ultra: {playerData.inventory.ultraball}</span>
+              <div className="w-4 h-4 rounded-full bg-black mr-2"></div>
+              <span className="mr-1">Ultra:</span>
+              <span className="font-bold">{playerData.inventory.ultraball}</span>
             </div>
             <div className="flex items-center">
-              <span className="inline-block w-3 h-3 rounded-full bg-purple-500 mr-2"></span>
-              <span>Master: {playerData.inventory.masterball}</span>
+              <div className="w-4 h-4 rounded-full bg-purple-500 mr-2"></div>
+              <span className="mr-1">Master:</span>
+              <span className="font-bold">{playerData.inventory.masterball}</span>
             </div>
           </div>
         </Card>
         
-        {/* Party */}
-        <Card className="bg-blue-400/30 backdrop-blur-sm p-4 text-white">
-          <h2 className="font-bold mb-2 flex items-center">
-            <Sword className="mr-2" size={16} /> Party
+        {/* Party Card */}
+        <Card className="bg-blue-100 border-2 border-blue-300 p-4 text-blue-900 flex-1">
+          <h2 className="font-bold mb-3 flex items-center text-lg">
+            <Gamepad className="mr-2" size={18} /> Party
           </h2>
+          
           {playerData.party.length === 0 ? (
-            <div className="text-sm text-white/70">No Pokémon yet</div>
+            <div className="text-center italic text-gray-500 py-4">
+              No Pokémon yet
+            </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
               {playerData.party.map((pokemon, index) => (
-                <div key={index} className="flex items-center">
+                <div key={index} className="flex items-center bg-white/50 rounded-lg p-2 shadow-sm">
                   {pokemon.image ? (
-                    <img src={pokemon.image} alt={pokemon.name} className="w-8 h-8 mr-2" />
+                    <img src={pokemon.image} alt={pokemon.name} className="w-12 h-12 mr-3 object-contain" />
                   ) : (
-                    <div className="w-8 h-8 bg-gray-300 rounded-full mr-2"></div>
+                    <div className="w-12 h-12 bg-gray-200 rounded-full mr-3 flex items-center justify-center text-gray-400">?</div>
                   )}
                   <div>
-                    <div className="font-medium">{pokemon.name}</div>
-                    <div className="text-xs">Lv. {pokemon.level}</div>
+                    <div className="font-medium capitalize">{pokemon.name}</div>
+                    <div className="text-xs">Level {pokemon.level}</div>
                   </div>
                 </div>
               ))}

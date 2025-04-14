@@ -4,6 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft } from "lucide-react";
+import { PokemonFuser } from "../components/pokemonFuser";
+import { Card } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const FusionLab = () => {
   const [pokemon1, setPokemon1] = useState<string>("");
@@ -12,8 +15,11 @@ const FusionLab = () => {
   const [pokemonList, setPokemonList] = useState<any[]>([]);
   const [showThirdPokemon, setShowThirdPokemon] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isCreatingFusion, setIsCreatingFusion] = useState<boolean>(false);
+  const [fusion, setFusion] = useState<any>(null);
   
   const navigate = useNavigate();
+  const pokemonFuser = new PokemonFuser();
 
   useEffect(() => {
     // Fetch Pokemon list from PokeAPI
@@ -26,6 +32,7 @@ const FusionLab = () => {
       } catch (error) {
         console.error("Error fetching Pokemon list:", error);
         setIsLoading(false);
+        toast.error("Failed to load Pokémon list");
       }
     };
     
@@ -52,12 +59,51 @@ const FusionLab = () => {
       // If turning on third Pokemon, randomly select one
       const randomIndex = Math.floor(Math.random() * pokemonList.length);
       setPokemon3(pokemonList[randomIndex]?.name || "");
+    } else {
+      // Reset fusion if removing third Pokemon
+      setFusion(null);
     }
   };
 
-  const createFusion = () => {
-    // In a real app, this would call your fusion API
-    alert(`Creating fusion of: ${pokemon1} + ${pokemon2}${showThirdPokemon ? ` + ${pokemon3}` : ''}`);
+  const fetchPokemonData = async (name: string) => {
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${name}`);
+    if (!response.ok) throw new Error(`Failed to fetch ${name}`);
+    return await response.json();
+  };
+
+  const createFusion = async () => {
+    if (!pokemon1 || !pokemon2 || (showThirdPokemon && !pokemon3)) {
+      toast.error("Please select all required Pokémon");
+      return;
+    }
+    
+    try {
+      setIsCreatingFusion(true);
+      
+      // Fetch detailed data for all selected Pokemon
+      const pokemon1Data = await fetchPokemonData(pokemon1);
+      const pokemon2Data = await fetchPokemonData(pokemon2);
+      let pokemon3Data = null;
+      
+      if (showThirdPokemon && pokemon3) {
+        pokemon3Data = await fetchPokemonData(pokemon3);
+      }
+      
+      // Create the fusion
+      const fusionResult = await pokemonFuser.createFusion(
+        pokemon1Data, 
+        pokemon2Data, 
+        pokemon3Data
+      );
+      
+      setFusion(fusionResult);
+      toast.success(`Successfully created ${fusionResult.name}!`);
+    } catch (error) {
+      console.error("Error creating fusion:", error);
+      toast.error("Failed to create fusion");
+    } finally {
+      setIsCreatingFusion(false);
+    }
   };
 
   const goBack = () => {
@@ -78,29 +124,12 @@ const FusionLab = () => {
             </div>
           </div>
           <div className="flex space-x-2">
-            <Button variant="outline" className="bg-transparent text-white border-white">
-              About
-            </Button>
-            <Button variant="outline" className="bg-transparent text-white border-white">
-              Help
+            <Button onClick={goBack} variant="outline" className="bg-transparent text-white border-white">
+              Back to Home
             </Button>
           </div>
         </div>
       </header>
-
-      {/* Navigation */}
-      <nav className="bg-blue-500 p-2 text-white">
-        <div className="container mx-auto">
-          <div className="flex space-x-2">
-            <Button variant="ghost" className="text-white hover:bg-blue-400" onClick={goBack}>
-              Home
-            </Button>
-            <Button variant="ghost" className="text-white bg-blue-400">
-              Fusion Lab
-            </Button>
-          </div>
-        </div>
-      </nav>
 
       {/* Main Content */}
       <main className="flex-grow container mx-auto p-4">
@@ -226,15 +255,83 @@ const FusionLab = () => {
                 </Button>
               </div>
               
-              <div className="flex justify-center">
+              <div className="flex justify-center mb-8">
                 <Button 
                   className="bg-indigo-500 hover:bg-indigo-600 text-white px-8 py-6 text-lg"
                   onClick={createFusion}
-                  disabled={!pokemon1 || !pokemon2 || (showThirdPokemon && !pokemon3)}
+                  disabled={!pokemon1 || !pokemon2 || (showThirdPokemon && !pokemon3) || isCreatingFusion}
                 >
-                  Create {showThirdPokemon ? "Tri-" : ""}Fusion
+                  {isCreatingFusion 
+                    ? "Creating Fusion..." 
+                    : `Create ${showThirdPokemon ? "Tri-" : ""}Fusion`}
                 </Button>
               </div>
+              
+              {/* Fusion Result */}
+              {fusion && (
+                <div className="mt-8">
+                  <h2 className="text-xl font-bold text-center mb-4">Fusion Result</h2>
+                  <div className="bg-gradient-to-r from-blue-100 to-purple-100 rounded-lg p-6 shadow-md">
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                      <div className="flex-shrink-0">
+                        <img 
+                          src={fusion.image || "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/0.png"} 
+                          alt={fusion.name}
+                          className="w-40 h-40 object-contain"
+                        />
+                      </div>
+                      <div className="flex-grow">
+                        <h3 className="text-2xl font-bold text-indigo-700">{fusion.name}</h3>
+                        <div className="flex flex-wrap gap-2 my-2">
+                          {fusion.type.map((type: string) => (
+                            <span 
+                              key={type} 
+                              className="px-3 py-1 rounded-full text-xs font-semibold"
+                              style={{
+                                backgroundColor: getTypeColor(type),
+                                color: ['dark', 'ghost', 'psychic'].includes(type.toLowerCase()) ? 'white' : 'black'
+                              }}
+                            >
+                              {type}
+                            </span>
+                          ))}
+                        </div>
+                        <p className="text-gray-700 italic mb-4">{fusion.description}</p>
+                        
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {Object.entries(fusion.stats).map(([stat, value]: [string, any]) => (
+                            <div key={stat} className="flex flex-col">
+                              <span className="text-xs text-gray-500 uppercase">
+                                {stat.replace('_', ' ')}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className="h-2 bg-gray-200 rounded-full flex-grow">
+                                  <div 
+                                    className="h-2 bg-indigo-500 rounded-full" 
+                                    style={{ width: `${Math.min(100, (Number(value) / 180) * 100)}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-xs font-semibold">{value}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <h4 className="font-semibold text-sm text-indigo-700 mb-2">Abilities</h4>
+                          <ul className="space-y-2">
+                            {fusion.abilities.map((ability: any, index: number) => (
+                              <li key={index} className="bg-white p-2 rounded shadow-sm">
+                                <span className="font-medium">{ability.name}:</span> {ability.description}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -242,36 +339,38 @@ const FusionLab = () => {
 
       {/* Footer */}
       <footer className="bg-blue-800 text-white p-4 mt-auto">
-        <div className="container mx-auto grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <div className="flex items-center mb-2">
-              <span className="text-red-500 font-bold">t/on</span>
-              <span className="text-blue-300 font-bold">nto</span>
-              <span className="text-blue-100 font-bold">o</span>
-              <div className="ml-1 w-2 h-2 bg-yellow-500 rounded-full"></div>
-            </div>
-            <p className="text-sm">Your ultimate Pokémon adventure awaits in this immersive web RPG experience.</p>
-          </div>
-          <div>
-            <h3 className="font-bold mb-2">Quick Links</h3>
-            <ul className="text-sm space-y-1">
-              <li>Home</li>
-              <li>Multiplayer</li>
-              <li>Battle</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="font-bold mb-2">Resources</h3>
-            <ul className="text-sm space-y-1">
-              <li>Help Center</li>
-              <li>FAQ</li>
-              <li>Community</li>
-            </ul>
-          </div>
+        <div className="container mx-auto text-center">
+          <p className="text-sm">© 2025 Pokémon Fusion Lab. All rights reserved.</p>
         </div>
       </footer>
     </div>
   );
 };
+
+// Helper function to get color based on Pokemon type
+function getTypeColor(type: string): string {
+  const typeColors: Record<string, string> = {
+    normal: '#A8A878',
+    fire: '#F08030',
+    water: '#6890F0',
+    electric: '#F8D030',
+    grass: '#78C850',
+    ice: '#98D8D8',
+    fighting: '#C03028',
+    poison: '#A040A0',
+    ground: '#E0C068',
+    flying: '#A890F0',
+    psychic: '#F85888',
+    bug: '#A8B820',
+    rock: '#B8A038',
+    ghost: '#705898',
+    dragon: '#7038F8',
+    dark: '#705848',
+    steel: '#B8B8D0',
+    fairy: '#EE99AC',
+  };
+  
+  return typeColors[type.toLowerCase()] || '#A8A878';
+}
 
 export default FusionLab;
