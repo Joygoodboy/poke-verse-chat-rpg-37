@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useRef } from 'react';
+import { createCommandSystem } from '../utils/gameCommands';
 
 // Pokemon game component with all enhanced commands
 const PokemonGame = () => {
@@ -11,133 +13,41 @@ const PokemonGame = () => {
     lastSpawn: null,
     lastDailyClaim: null,
     lastBonusClaim: null,
-    lastSpinTime: null,
+    lastSlotPlay: null,
+    lastInterestClaim: null,
     experience: 0,
     level: 1,
     bankInterest: 0.05, // 5% interest rate
     slotMachine: {
       symbols: ['🍒', '💎', '7️⃣', '🎰', '⭐'],
-      lastPlay: null,
       jackpot: 1000,
     },
   });
 
-  // Enhanced slot machine command
-  const playSlot = () => {
-    const betAmount = 50; // Fixed bet amount
-    if (gameData.wallet < betAmount) {
-      return "You need at least 50 coins to play slots!";
-    }
+  const [commandHistory, setCommandHistory] = useState([]);
+  const [inputCommand, setInputCommand] = useState('');
+  const commandSystemRef = useRef(null);
+  const commandHistoryRef = useRef(null);
 
-    // Cooldown check (1 minute)
-    const now = Date.now();
-    if (gameData.lastSpinTime && now - gameData.lastSpinTime < 60000) {
-      return "Please wait a minute between spins!";
-    }
+  // Initialize command system
+  useEffect(() => {
+    commandSystemRef.current = createCommandSystem(gameData, setGameData);
+  }, [gameData]);
 
-    const reels = [];
-    for (let i = 0; i < 3; i++) {
-      const randomIndex = Math.floor(Math.random() * gameData.slotMachine.symbols.length);
-      reels.push(gameData.slotMachine.symbols[randomIndex]);
-    }
-
-    let winAmount = 0;
-    const allMatch = reels.every(symbol => symbol === reels[0]);
-    const twoMatch = reels[0] === reels[1] || reels[1] === reels[2] || reels[0] === reels[2];
-
-    if (allMatch) {
-      if (reels[0] === '💎') {
-        winAmount = gameData.slotMachine.jackpot;
-      } else {
-        winAmount = betAmount * 10;
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem('pokemonGameData');
+    if (savedData) {
+      try {
+        setGameData(JSON.parse(savedData));
+      } catch (error) {
+        console.error('Error loading saved data:', error);
+        addToHistory('System', 'Error loading saved game data.');
       }
-    } else if (twoMatch) {
-      winAmount = betAmount * 2;
     }
+  }, []);
 
-    setGameData(prev => ({
-      ...prev,
-      wallet: prev.wallet - betAmount + winAmount,
-      lastSpinTime: now,
-      slotMachine: {
-        ...prev.slotMachine,
-        jackpot: allMatch && reels[0] === '💎' ? 1000 : prev.slotMachine.jackpot + Math.floor(betAmount * 0.1),
-      },
-    }));
-
-    return `🎰 ${reels.join(' ')} ${winAmount > 0 ? `\nYou won ${winAmount} coins!` : '\nTry again!'}`;
-  };
-
-  // Enhanced bank system
-  const bankCommands = {
-    balance: () => `Bank Balance: ${gameData.bank} coins\nCurrent Interest Rate: ${gameData.bankInterest * 100}%`,
-    
-    deposit: (amount) => {
-      amount = parseInt(amount);
-      if (isNaN(amount) || amount <= 0) return "Please specify a valid amount.";
-      if (amount > gameData.wallet) return "Insufficient funds in wallet.";
-      
-      setGameData(prev => ({
-        ...prev,
-        wallet: prev.wallet - amount,
-        bank: prev.bank + amount
-      }));
-      
-      return `Successfully deposited ${amount} coins.`;
-    },
-    
-    withdraw: (amount) => {
-      amount = parseInt(amount);
-      if (isNaN(amount) || amount <= 0) return "Please specify a valid amount.";
-      if (amount > gameData.bank) return "Insufficient funds in bank.";
-      
-      setGameData(prev => ({
-        ...prev,
-        bank: prev.bank - amount,
-        wallet: prev.wallet + amount
-      }));
-      
-      return `Successfully withdrew ${amount} coins.`;
-    },
-    
-    interest: () => {
-      const now = Date.now();
-      const lastInterest = gameData.lastInterestClaim || 0;
-      const oneDay = 24 * 60 * 60 * 1000;
-      
-      if (now - lastInterest < oneDay) {
-        const timeLeft = oneDay - (now - lastInterest);
-        const hoursLeft = Math.floor(timeLeft / (60 * 60 * 1000));
-        return `Interest can be claimed in ${hoursLeft} hours.`;
-      }
-      
-      const interestAmount = Math.floor(gameData.bank * gameData.bankInterest);
-      setGameData(prev => ({
-        ...prev,
-        bank: prev.bank + interestAmount,
-        lastInterestClaim: now
-      }));
-      
-      return `You earned ${interestAmount} coins in interest!`;
-    }
-  };
-
-  // Command handler
-  const handleCommand = (command, args) => {
-    switch (command) {
-      case '/slot':
-        return playSlot();
-      case '/bank':
-        if (!args.length) return bankCommands.balance();
-        const [subCommand, ...subArgs] = args;
-        return bankCommands[subCommand]?.(subArgs[0]) || "Invalid bank command. Try balance/deposit/withdraw/interest";
-      // ... other command handlers
-      default:
-        return "Unknown command. Use /help to see available commands.";
-    }
-  };
-
-  // Effect for auto-saving game data
+  // Auto-save game data
   useEffect(() => {
     const saveInterval = setInterval(() => {
       localStorage.setItem('pokemonGameData', JSON.stringify(gameData));
@@ -146,13 +56,82 @@ const PokemonGame = () => {
     return () => clearInterval(saveInterval);
   }, [gameData]);
 
-  // Load saved data on component mount
+  // Scroll to bottom when command history updates
   useEffect(() => {
-    const savedData = localStorage.getItem('pokemonGameData');
-    if (savedData) {
-      setGameData(JSON.parse(savedData));
+    if (commandHistoryRef.current) {
+      commandHistoryRef.current.scrollTop = commandHistoryRef.current.scrollHeight;
     }
-  }, []);
+  }, [commandHistory]);
+
+  // Add message to command history
+  const addToHistory = (sender, message) => {
+    setCommandHistory(prev => [...prev, { sender, message, timestamp: new Date() }]);
+  };
+
+  // Handle command input
+  const handleCommandInput = (e) => {
+    setInputCommand(e.target.value);
+  };
+
+  // Process command
+  const processCommand = () => {
+    if (!inputCommand.trim()) return;
+
+    // Add the command to history
+    addToHistory('You', inputCommand);
+
+    // Process the command
+    const commandParts = inputCommand.split(' ');
+    const commandName = commandParts[0].toLowerCase().replace('/', '');
+    const args = commandParts.slice(1);
+
+    if (commandName === 'slot') {
+      const response = commandSystemRef.current.slot();
+      addToHistory('System', response);
+    } else if (commandName === 'bank') {
+      const response = commandSystemRef.current.bank(args);
+      addToHistory('System', response);
+    } else if (commandName === 'help') {
+      addToHistory('System', `📖 Available Commands:
+🧰 General: /help, /ping, /pc, /mods, /owner
+🎮 Pokémon: /party, /catch, /spawn, /move, /t2pc, /t2party, /release
+🛒 Economy: /wallet, /bank [deposit/withdraw/interest] [amount], /slot, /daily
+⚔️ Battle: /rb, /battle, /accept, /decline
+📦 Storage: /save, /load
+🛍️ Shop: /shop, /buyball, /pokemart, /buypokemon
+👥 Social: /trade, /accepttrade, /broadcast
+👑 Staff: /ban, /unban (owner only)
+✨ Other: /mods, /owner`);
+    } else if (commandName === 'save') {
+      localStorage.setItem('pokemonGameData', JSON.stringify(gameData));
+      addToHistory('System', 'Game saved successfully!');
+    } else if (commandName === 'load') {
+      const savedData = localStorage.getItem('pokemonGameData');
+      if (savedData) {
+        try {
+          setGameData(JSON.parse(savedData));
+          addToHistory('System', 'Game loaded successfully!');
+        } catch (error) {
+          addToHistory('System', 'Error loading saved game.');
+        }
+      } else {
+        addToHistory('System', 'No saved game found.');
+      }
+    } else if (commandName === 'wallet') {
+      addToHistory('System', `Wallet: ${gameData.wallet} coins\nBank: ${gameData.bank} coins`);
+    } else {
+      addToHistory('System', `Unknown command: ${commandName}. Type /help for a list of commands.`);
+    }
+
+    // Clear the input
+    setInputCommand('');
+  };
+
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      processCommand();
+    }
+  };
 
   return (
     <div className="pokemon-game">
@@ -165,17 +144,26 @@ const PokemonGame = () => {
       </div>
       
       <div className="game-content">
-        <div className="command-history">
-          {/* Command history would be displayed here */}
+        <div 
+          className="command-history"
+          ref={commandHistoryRef}
+        >
+          {commandHistory.map((entry, index) => (
+            <div key={index} className={`history-entry ${entry.sender === 'You' ? 'player-command' : 'system-response'}`}>
+              <span className="sender">{entry.sender}:</span> {entry.message}
+            </div>
+          ))}
         </div>
         
         <div className="command-input">
           <input 
             type="text" 
+            value={inputCommand}
+            onChange={handleCommandInput}
+            onKeyPress={handleKeyPress}
             placeholder="Enter command (e.g., /help, /slot, /bank)" 
-            // Input handling would go here
           />
-          <button>Send</button>
+          <button onClick={processCommand}>Send</button>
         </div>
       </div>
       
