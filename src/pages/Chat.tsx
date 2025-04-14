@@ -1,10 +1,9 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Send, Award, User, Wallet, Bank, Package, Gamepad, Gift, HelpCircle } from "lucide-react";
+import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onChildAdded, push } from "firebase/database";
 
@@ -447,7 +446,7 @@ const Chat = () => {
           </div>
           <div className="flex justify-between items-center">
             <span className="flex items-center text-blue-500 font-medium">
-              <Bank size={16} className="mr-2 text-blue-500" /> Bank
+              <Wallet size={16} className="mr-2 text-blue-500" /> Bank
             </span>
             <span className="font-bold">{playerData.bank} ₽</span>
           </div>
