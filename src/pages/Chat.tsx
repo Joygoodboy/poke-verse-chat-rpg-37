@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle, Users } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onChildAdded, push, onValue, onDisconnect, set, remove } from "firebase/database";
+import { createCommandSystem, formatCommandOutput } from "../utils/gameCommands";
 
 const Chat = () => {
   const [message, setMessage] = useState<string>("");
@@ -23,11 +23,14 @@ const Chat = () => {
     lastDailyClaim: null,
     xp: 0,
     level: 1,
-    bonusUsed: false
+    bonusUsed: false,
+    lastSlotPlay: null,
+    lastInterestClaim: null
   });
   
   const chatDivRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const commandSystemRef = useRef<any>(null);
   
   const catchRates = {
     pokeball: 0.5,
@@ -35,6 +38,10 @@ const Chat = () => {
     ultraball: 0.9,
     masterball: 1
   };
+
+  useEffect(() => {
+    commandSystemRef.current = createCommandSystem(playerData, setPlayerData);
+  }, [playerData]);
 
   useEffect(() => {
     // Check if user is logged in
@@ -109,19 +116,36 @@ const Chat = () => {
     
     const args = message.split(" ");
     const base = args[0].toLowerCase();
+    const commandName = base.replace('/', '');
+    const commandArgs = args.slice(1);
     
+    if (commandSystemRef.current && commandSystemRef.current[commandName]) {
+      const response = commandSystemRef.current[commandName](commandArgs);
+      broadcast(response);
+      
+      if (['slot', 'bank', 'daily', 'buy'].includes(commandName)) {
+        localStorage.setItem("pokemonSave", JSON.stringify(playerData));
+      }
+    } else {
+      handleTraditionalCommand(base, args);
+    }
+    
+    setMessage("");
+  };
+
+  const handleTraditionalCommand = async (base: string, args: string[]) => {
     switch (base) {
       case "/help":
         broadcast(`📖 Available Commands:
 🧰 General: /help, /ping, /pc, /mods, /owner
 🎮 Pokémon: /party, /catch, /spawn, /move, /t2pc, /t2party, /release
-🛒 Economy: /wallet, /bank, /deposit, /withdraw, /slot, /daily
+🛒 Economy: /wallet, /bank [deposit/withdraw/interest] [amount], /slot, /daily
 ⚔️ Battle: /rb, /battle, /accept, /decline
 📦 Storage: /save, /load
 🛍️ Shop: /shop, /buyball, /pokemart, /buypokemon
 👥 Social: /trade, /accepttrade, /broadcast
 👑 Staff: /ban, /unban (owner only)
-✨ Other: /mods, /owner, /rank`);
+✨ Other: /mods, /owner, /rank, /inventory`);
         break;
         
       case "/spawnpokemon":
@@ -200,7 +224,7 @@ const Chat = () => {
         const bar = `[${"■".repeat(filled)}${"□".repeat(10 - filled)}] ${xp}/${nextLevelXP}`;
 
         const title = getTitle(level);
-        const imageUrl = `https://robohash.org/${encodeURIComponent(title)}.png?set=set2`; // fantasy monster-style
+        const imageUrl = `https://robohash.org/${encodeURIComponent(title)}.png?set=set2`;
 
         broadcast(
           `📊 Your Rank:<br>` +
@@ -234,13 +258,11 @@ const Chat = () => {
               updated.party.push(updated.lastSpawn);
               broadcast(`You caught ${updated.lastSpawn.name} and added to your party!`);
               
-              // Add XP for catching a Pokemon
               updated.xp += 50;
             } else {
               updated.pc.push(updated.lastSpawn);
               broadcast(`Party full! ${updated.lastSpawn.name} sent to PC.`);
               
-              // Add XP for catching a Pokemon
               updated.xp += 25;
             }
           } else {
@@ -303,16 +325,12 @@ const Chat = () => {
         break;
       
       default:
-        // Command not recognized, broadcast as regular message
         break;
     }
-    
-    setMessage("");
   };
 
   const handleCommandButton = (cmd: string) => {
     setMessage(cmd);
-    // Execute command immediately
     setTimeout(() => {
       handleCommand();
     }, 10);
@@ -330,7 +348,6 @@ const Chat = () => {
 
   return (
     <div className="flex h-screen bg-blue-500">
-      {/* Left sidebar - Online Trainers */}
       <div className="hidden md:block w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-r border-blue-300">
         <h2 className="text-white font-bold mb-4 flex items-center">
           <Users className="mr-2" size={18} /> Online Trainers
@@ -352,7 +369,6 @@ const Chat = () => {
         )}
       </div>
       
-      {/* Main Chat Area */}
       <div className="flex-1 flex flex-col bg-gradient-to-br from-blue-500 to-purple-600 overflow-hidden">
         <div className="bg-blue-600 p-3 text-white flex items-center">
           <Button 
@@ -386,7 +402,6 @@ const Chat = () => {
           ))}
         </div>
         
-        {/* Command Buttons */}
         <div className="bg-blue-700/50 backdrop-blur-sm px-2 py-1 flex flex-wrap gap-1">
           <Button 
             variant="outline" 
@@ -416,17 +431,17 @@ const Chat = () => {
             variant="outline"
             size="sm" 
             className="bg-yellow-500/30 text-white border-yellow-400 hover:bg-yellow-600/50"
-            onClick={() => handleCommandButton("/rank")}
+            onClick={() => handleCommandButton("/slot")}
           >
-            <Award className="mr-1" size={14} /> Rank
+            Slot
           </Button>
           <Button 
             variant="outline"
             size="sm" 
             className="bg-red-500/30 text-white border-red-400 hover:bg-red-600/50"
-            onClick={() => handleCommandButton("/inventory")}
+            onClick={() => handleCommandButton("/bank")}
           >
-            Inventory
+            Bank
           </Button>
           <Button 
             variant="outline"
@@ -446,7 +461,6 @@ const Chat = () => {
           </Button>
         </div>
         
-        {/* Input Area */}
         <div className="p-4 bg-blue-800/50 backdrop-blur-sm flex gap-2">
           <Input
             value={message}
@@ -464,9 +478,7 @@ const Chat = () => {
         </div>
       </div>
       
-      {/* Right sidebar - Player Stats - Enhanced to match the image */}
       <div className="hidden md:flex flex-col w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-l border-blue-300 gap-4">
-        {/* Player Info Card */}
         <Card className="bg-yellow-100 border-2 border-yellow-300 p-4 text-blue-900">
           <h2 className="font-bold mb-3 flex items-center text-lg">
             <User className="mr-2" size={18} /> {username}
@@ -485,7 +497,6 @@ const Chat = () => {
           </div>
         </Card>
         
-        {/* Inventory Card */}
         <Card className="bg-blue-100 border-2 border-blue-300 p-4 text-blue-900">
           <h2 className="font-bold mb-3 flex items-center text-lg">
             <Package className="mr-2" size={18} /> Inventory
@@ -514,7 +525,6 @@ const Chat = () => {
           </div>
         </Card>
         
-        {/* Party Card */}
         <Card className="bg-blue-100 border-2 border-blue-300 p-4 text-blue-900 flex-1">
           <h2 className="font-bold mb-3 flex items-center text-lg">
             <Gamepad className="mr-2" size={18} /> Party
