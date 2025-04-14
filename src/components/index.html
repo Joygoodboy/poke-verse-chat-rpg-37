@@ -1,0 +1,106 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <meta name="theme-color" content="#F2F2F7">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>Pokémon Fusion Lab</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Splash Screen (Full Screen Loader) -->
+  <div id="splash-screen">
+    <img src="https://i.pinimg.com/originals/9f/b1/25/9fb125f1fedc8cc62ab5b20699ebd87d.gif" alt="Loading Animation">
+    <div id="progress-bar">
+      <div id="progress-bar-fill"></div>
+    </div>
+  </div>
+
+  <div class="container flex-mobile">
+    <h1 class="compact-mobile">Pokémon Fusion Lab</h1>
+    
+    <div class="fusion-container">
+      <div class="pokemon-select">
+        <div class="pokemon pokemon1">
+          <select id="pokemon1" aria-label="Select first Pokémon"></select>
+          <div id="pokemon1-display" class="pokemon-display" role="img"></div>
+        </div>
+        
+        <div class="fusion-symbol" aria-hidden="true">+</div>
+        
+        <div class="pokemon pokemon2">
+          <select id="pokemon2" aria-label="Select second Pokémon"></select>
+          <div id="pokemon2-display" class="pokemon-display" role="img"></div>
+        </div>
+
+        <button id="add-third-btn" class="add-third-btn" aria-label="Add third Pokémon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="16"/>
+            <line x1="8" y1="12" x2="16" y2="12"/>
+          </svg>
+        </button>
+        
+        <div id="third-pokemon-container" class="pokemon pokemon3 hidden">
+          <div class="fusion-symbol" aria-hidden="true">+</div>
+          <select id="pokemon3" aria-label="Select third Pokémon"></select>
+          <div id="pokemon3-display" class="pokemon-display" role="img"></div>
+        </div>
+
+        <button id="random-pokemon-btn" class="random-pokemon-btn" aria-label="Randomize Pokémon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M4 20h4L18.5 7.5a2.121 2.121 0 0 0-3-3L4 16v4"/>
+            <path d="M13.5 6.5l4 4"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="fuse-controls">
+        <button id="fuse-btn" class="fuse-button">Create Fusion</button>
+      </div>
+
+      <div class="result-container">
+        <div id="loading" class="loading hidden">
+          <div class="spinner" role="progressbar" aria-label="Creating fusion"></div>
+          <p>Creating your unique Pokémon fusion...</p>
+        </div>
+        <div id="fusion-result" class="fusion-result hidden">
+          <h2 id="fusion-name" class="compact-mobile"></h2>
+          <div id="fusion-image" class="fusion-image" role="img"></div>
+          <div id="fusion-stats" class="fusion-stats compact-mobile"></div>
+        </div>
+      </div>
+    </div>
+    <button id="saved-fusions-btn" class="saved-fusions-btn" aria-label="View Saved Fusions">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+        <path d="M19 21l-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z"/>
+      </svg>
+      <span>Saved Fusions</span>
+    </button>
+
+    <div id="saved-fusions-modal" class="saved-fusions-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Saved Fusions</h2>
+          <button id="close-modal-btn" class="close-modal-btn" aria-label="Close Modal">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+        <div id="saved-fusions-grid" class="saved-fusions-grid"></div>
+      </div>
+    </div>
+    <footer class="footer">
+      <div class="footer-divider"></div>
+      <p class="footer-text">
+        Check out the awesome creator: <a href="https://websim.ai/@CaptainBird" class="footer-link">@CaptainBird</a> / <a href="https://websim.ai/@WellWhoIsAman" class="footer-link">@WellWhoIsAman</a> & remixer <a href="https://websim.ai/@2Deep" class="footer-link">@2Deep</a>
+      </p>
+    </footer>
+  </div>
+  
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
