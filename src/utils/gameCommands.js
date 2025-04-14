@@ -1,4 +1,3 @@
-
 // Command utilities for the Pokemon game
 export const createCommandSystem = (gameData, setGameData) => {
   // Enhanced slot command with improved feedback and cooldown
@@ -207,6 +206,155 @@ Use /buy [item] to purchase.`;
     }
   };
 
+  // Broadcast command for admins to send global messages
+  const broadcastCommand = (args, userData = {}) => {
+    if (!args.length) {
+      return "Please provide a message to broadcast.";
+    }
+    
+    if (!userData.isOwner && !userData.isAdmin) {
+      return "You don't have permission to use this command.";
+    }
+    
+    const message = args.join(" ");
+    return `[BROADCAST] ${message}`;
+  };
+
+  // Ban command for admins
+  const banCommand = (args, userData = {}) => {
+    if (!args.length) {
+      return "Please specify a username to ban.";
+    }
+    
+    if (!userData.isOwner && !userData.isAdmin) {
+      return "You don't have permission to use this command.";
+    }
+    
+    const targetUser = args[0];
+    const reason = args.slice(1).join(" ") || "No reason provided";
+    
+    // In a real implementation, this would interact with a database
+    return `User ${targetUser} has been banned. Reason: ${reason}`;
+  };
+
+  // Unban command for admins
+  const unbanCommand = (args, userData = {}) => {
+    if (!args.length) {
+      return "Please specify a username to unban.";
+    }
+    
+    if (!userData.isOwner && !userData.isAdmin) {
+      return "You don't have permission to use this command.";
+    }
+    
+    const targetUser = args[0];
+    
+    // In a real implementation, this would interact with a database
+    return `User ${targetUser} has been unbanned.`;
+  };
+
+  // Owner command to display owners
+  const ownerCommand = () => {
+    const owners = gameData.owners || ["Ash", "Misty", "Brock"];
+    return `👑 Game Owners: ${owners.join(", ")}`;
+  };
+
+  // Mods command to display moderators
+  const modsCommand = () => {
+    const mods = gameData.mods || ["Gary", "Professor Oak"];
+    return `🛡️ Game Moderators: ${mods.join(", ")}`;
+  };
+
+  // Buyball command for purchasing specific pokeballs
+  const buyballCommand = (args) => {
+    if (!args.length) {
+      return "Please specify a type of ball to buy (pokeball, greatball, ultraball, masterball).";
+    }
+    
+    const ballType = args[0].toLowerCase();
+    const quantity = parseInt(args[1]) || 1;
+    
+    const prices = {
+      pokeball: 100,
+      greatball: 250,
+      ultraball: 500,
+      masterball: 1000
+    };
+    
+    if (!prices[ballType]) {
+      return `Invalid ball type. Available types: ${Object.keys(prices).join(", ")}`;
+    }
+    
+    const totalCost = prices[ballType] * quantity;
+    
+    if (gameData.wallet < totalCost) {
+      return `You don't have enough coins. Cost: ${totalCost} coins for ${quantity} ${ballType}(s).`;
+    }
+    
+    setGameData(prev => ({
+      ...prev,
+      wallet: prev.wallet - totalCost,
+      inventory: {
+        ...prev.inventory,
+        [ballType]: (prev.inventory[ballType] || 0) + quantity
+      }
+    }));
+    
+    return `You bought ${quantity} ${ballType}(s) for ${totalCost} coins.`;
+  };
+
+  // Move command to reorder party Pokemon
+  const moveCommand = (args) => {
+    if (args.length < 2) {
+      return "Please provide two positions to swap: /move [pos1] [pos2]";
+    }
+    
+    const pos1 = parseInt(args[0]);
+    const pos2 = parseInt(args[1]);
+    
+    if (isNaN(pos1) || isNaN(pos2) || 
+        pos1 < 0 || pos2 < 0 || 
+        pos1 >= gameData.party.length || pos2 >= gameData.party.length) {
+      return "Invalid positions. Use numbers within your party range.";
+    }
+    
+    setGameData(prev => {
+      const newParty = [...prev.party];
+      [newParty[pos1], newParty[pos2]] = [newParty[pos2], newParty[pos1]];
+      return {
+        ...prev,
+        party: newParty
+      };
+    });
+    
+    return `Swapped positions ${pos1} and ${pos2} in your party.`;
+  };
+
+  // Release command to free a Pokemon
+  const releaseCommand = (args) => {
+    if (!args.length) {
+      return "Please specify which Pokemon to release by its position in your party.";
+    }
+    
+    const position = parseInt(args[0]);
+    
+    if (isNaN(position) || position < 0 || position >= gameData.party.length) {
+      return "Invalid position. Use a number within your party range.";
+    }
+    
+    setGameData(prev => {
+      const newParty = [...prev.party];
+      const released = newParty.splice(position, 1)[0];
+      return {
+        ...prev,
+        party: newParty,
+        wallet: prev.wallet + 50 // Small compensation for releasing
+      };
+    });
+    
+    return `You released your Pokemon and received 50 coins as compensation.`;
+  };
+
   // Object with all commands
   const commands = {
     slot: slotCommand,
@@ -217,7 +365,15 @@ Use /buy [item] to purchase.`;
     wallet: walletCommand,
     inventory: inventoryCommand,
     save: saveCommand,
-    load: loadCommand
+    load: loadCommand,
+    broadcast: broadcastCommand,
+    ban: banCommand,
+    unban: unbanCommand,
+    owner: ownerCommand,
+    mods: modsCommand,
+    buyball: buyballCommand,
+    move: moveCommand,
+    release: releaseCommand
   };
 
   return commands;
@@ -229,4 +385,17 @@ export const formatCommandOutput = (output) => {
     return output;
   }
   return JSON.stringify(output);
+};
+
+// Helper function to check if a user has admin privileges
+export const isAdminUser = (username, owners = [], admins = []) => {
+  const lowerUsername = username.toLowerCase();
+  return owners.some(owner => owner.toLowerCase() === lowerUsername) || 
+         admins.some(admin => admin.toLowerCase() === lowerUsername);
+};
+
+// Helper function to check if a user is an owner
+export const isOwnerUser = (username, owners = []) => {
+  const lowerUsername = username.toLowerCase();
+  return owners.some(owner => owner.toLowerCase() === lowerUsername);
 };

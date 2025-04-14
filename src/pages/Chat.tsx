@@ -3,10 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle, Users } from "lucide-react";
+import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle, Users, Shield, Crown } from "lucide-react";
 import { db } from "../firebase";
 import { ref, onChildAdded, push, onValue, onDisconnect, set, remove } from "firebase/database";
-import { createCommandSystem, formatCommandOutput } from "../utils/gameCommands";
+import { createCommandSystem, formatCommandOutput, isAdminUser, isOwnerUser } from "../utils/gameCommands";
+
+const OWNER_LIST = ["Ash", "admin@pokemon.com", "owner@pokemon.com"];
+const ADMIN_LIST = ["Gary", "mod@pokemon.com", "moderator@pokemon.com"];
 
 const Chat = () => {
   const [message, setMessage] = useState<string>("");
@@ -25,7 +28,10 @@ const Chat = () => {
     level: 1,
     bonusUsed: false,
     lastSlotPlay: null,
-    lastInterestClaim: null
+    lastInterestClaim: null,
+    owners: OWNER_LIST,
+    mods: ADMIN_LIST,
+    bannedUsers: []
   });
   
   const chatDivRef = useRef<HTMLDivElement>(null);
@@ -39,12 +45,14 @@ const Chat = () => {
     masterball: 1
   };
 
+  const userIsAdmin = isAdminUser(username, OWNER_LIST, ADMIN_LIST);
+  const userIsOwner = isOwnerUser(username, OWNER_LIST);
+
   useEffect(() => {
     commandSystemRef.current = createCommandSystem(playerData, setPlayerData);
   }, [playerData]);
 
   useEffect(() => {
-    // Check if user is logged in
     const storedUsername = localStorage.getItem("loggedInUser");
     if (!storedUsername) {
       navigate("/login");
@@ -52,7 +60,6 @@ const Chat = () => {
     }
     setUsername(storedUsername);
     
-    // Load saved game data
     const savedData = localStorage.getItem("pokemonSave");
     if (savedData) {
       try {
@@ -62,24 +69,19 @@ const Chat = () => {
       }
     }
 
-    // Set up Firebase listener for chat messages
     const chatRef = ref(db, "chat");
     const unsubscribe = onChildAdded(chatRef, (snapshot) => {
       const message = snapshot.val();
       setMessages(prev => [...prev, message]);
     });
 
-    // Set up presence system
     const onlineUsersRef = ref(db, "online");
     const myPresenceRef = ref(db, `online/${storedUsername}`);
     
-    // When this client connects, add them to the presence list
     set(myPresenceRef, true);
     
-    // When client disconnects, remove them from the presence list
     onDisconnect(myPresenceRef).remove();
     
-    // Listen for changes in the online users list
     const onlineUnsubscribe = onValue(onlineUsersRef, (snapshot) => {
       if (snapshot.exists()) {
         const users = Object.keys(snapshot.val());
@@ -89,16 +91,14 @@ const Chat = () => {
       }
     });
 
-    // Clean up listeners on unmount
     return () => {
       unsubscribe();
       onlineUnsubscribe();
-      remove(myPresenceRef); // Explicitly remove when component unmounts
+      remove(myPresenceRef);
     };
   }, [navigate]);
 
   useEffect(() => {
-    // Scroll to bottom when messages change
     if (chatDivRef.current) {
       chatDivRef.current.scrollTop = chatDivRef.current.scrollHeight;
     }
@@ -120,10 +120,15 @@ const Chat = () => {
     const commandArgs = args.slice(1);
     
     if (commandSystemRef.current && commandSystemRef.current[commandName]) {
-      const response = commandSystemRef.current[commandName](commandArgs);
+      const userData = { 
+        isOwner: userIsOwner,
+        isAdmin: userIsAdmin
+      };
+      
+      const response = commandSystemRef.current[commandName](commandArgs, userData);
       broadcast(response);
       
-      if (['slot', 'bank', 'daily', 'buy'].includes(commandName)) {
+      if (['slot', 'bank', 'daily', 'buy', 'buyball', 'ban', 'unban'].includes(commandName)) {
         localStorage.setItem("pokemonSave", JSON.stringify(playerData));
       }
     } else {
@@ -324,6 +329,140 @@ const Chat = () => {
         }
         break;
       
+      case "/ban":
+        if (!userIsOwner && !userIsAdmin) {
+          broadcast("❌ You don't have permission to use this command.");
+          break;
+        }
+
+        const banUser = args[1];
+        if (!banUser) {
+          broadcast("❌ Please specify a username to ban.");
+          break;
+        }
+
+        setPlayerData(prev => ({
+          ...prev,
+          bannedUsers: [...(prev.bannedUsers || []), banUser]
+        }));
+
+        const banReason = args.slice(2).join(" ") || "No reason provided";
+        broadcast(`🚫 User ${banUser} has been banned. Reason: ${banReason}`);
+        break;
+
+      case "/unban":
+        if (!userIsOwner && !userIsAdmin) {
+          broadcast("❌ You don't have permission to use this command.");
+          break;
+        }
+
+        const unbanUser = args[1];
+        if (!unbanUser) {
+          broadcast("❌ Please specify a username to unban.");
+          break;
+        }
+
+        setPlayerData(prev => ({
+          ...prev,
+          bannedUsers: (prev.bannedUsers || []).filter(user => user !== unbanUser)
+        }));
+
+        broadcast(`✅ User ${unbanUser} has been unbanned.`);
+        break;
+
+      case "/broadcast":
+        if (!userIsOwner && !userIsAdmin) {
+          broadcast("❌ You don't have permission to use this command.");
+          break;
+        }
+
+        const broadcastMessage = args.slice(1).join(" ");
+        if (!broadcastMessage) {
+          broadcast("❌ Please provide a message to broadcast.");
+          break;
+        }
+
+        broadcast(`📣 [BROADCAST] ${broadcastMessage}`);
+        break;
+
+      case "/move":
+        const pos1 = parseInt(args[1]);
+        const pos2 = parseInt(args[2]);
+        
+        if (isNaN(pos1) || isNaN(pos2) || 
+            pos1 < 0 || pos2 < 0 || 
+            pos1 >= playerData.party.length || pos2 >= playerData.party.length) {
+          broadcast("❌ Invalid positions. Use numbers within your party range.");
+          break;
+        }
+        
+        setPlayerData(prev => {
+          const newParty = [...prev.party];
+          [newParty[pos1], newParty[pos2]] = [newParty[pos2], newParty[pos1]];
+          return { ...prev, party: newParty };
+        });
+        
+        broadcast(`✅ Swapped positions ${pos1} and ${pos2} in your party.`);
+        break;
+
+      case "/release":
+        const releasePos = parseInt(args[1]);
+        
+        if (isNaN(releasePos) || releasePos < 0 || releasePos >= playerData.party.length) {
+          broadcast("❌ Invalid position. Use a number within your party range.");
+          break;
+        }
+        
+        const releasedPokemon = playerData.party[releasePos].name;
+        
+        setPlayerData(prev => {
+          const newParty = [...prev.party];
+          newParty.splice(releasePos, 1);
+          return {
+            ...prev,
+            party: newParty,
+            wallet: prev.wallet + 50
+          };
+        });
+        
+        broadcast(`😢 You released ${releasedPokemon} and received 50 coins as compensation.`);
+        break;
+
+      case "/buyball":
+        const ballType = args[1]?.toLowerCase();
+        const quantity = parseInt(args[2]) || 1;
+        
+        const ballPrices = {
+          pokeball: 100,
+          greatball: 250,
+          ultraball: 500,
+          masterball: 1000
+        };
+        
+        if (!ballPrices[ballType]) {
+          broadcast(`❌ Invalid ball type. Available types: ${Object.keys(ballPrices).join(", ")}`);
+          break;
+        }
+        
+        const totalCost = ballPrices[ballType] * quantity;
+        
+        if (playerData.wallet < totalCost) {
+          broadcast(`💸 You don't have enough coins. Cost: ${totalCost} coins for ${quantity} ${ballType}(s).`);
+          break;
+        }
+        
+        setPlayerData(prev => ({
+          ...prev,
+          wallet: prev.wallet - totalCost,
+          inventory: {
+            ...prev.inventory,
+            [ballType]: (prev.inventory[ballType] || 0) + quantity
+          }
+        }));
+        
+        broadcast(`🛒 You bought ${quantity} ${ballType}(s) for ${totalCost} coins.`);
+        break;
+      
       default:
         break;
     }
@@ -359,12 +498,55 @@ const Chat = () => {
               <div key={index} className="flex items-center text-white">
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 <span>{user}</span>
+                {userIsOwner && (
+                  <button 
+                    onClick={() => handleCommandButton(`/ban ${user}`)} 
+                    className="ml-2 text-xs text-red-300 hover:text-red-100"
+                    title="Ban user"
+                  >
+                    Ban
+                  </button>
+                )}
               </div>
             ))}
           </div>
         ) : (
           <div className="text-white/70 italic">
             No trainers online
+          </div>
+        )}
+
+        {(userIsAdmin || userIsOwner) && (
+          <div className="mt-6 p-3 bg-purple-500/30 rounded-lg backdrop-blur-sm">
+            <h3 className="text-white font-bold mb-2 flex items-center">
+              <Shield className="mr-2" size={16} /> Admin Controls
+            </h3>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-red-500/30 text-white border-red-400 hover:bg-red-600/50"
+                onClick={() => handleCommandButton(`/broadcast`)}
+              >
+                Broadcast
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-yellow-500/30 text-white border-yellow-400 hover:bg-yellow-600/50"
+                onClick={() => handleCommandButton(`/mods`)}
+              >
+                View Mods
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm"
+                className="bg-purple-500/30 text-white border-purple-400 hover:bg-purple-600/50"
+                onClick={() => handleCommandButton(`/owner`)}
+              >
+                <Crown className="mr-1" size={14} /> Owners
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -379,6 +561,8 @@ const Chat = () => {
             <ChevronLeft size={20} />
           </Button>
           <h1 className="text-xl font-bold">Pokémon RPG Chat</h1>
+          {userIsAdmin && <span className="ml-2 text-xs bg-purple-500 text-white px-2 py-0.5 rounded-full">Admin</span>}
+          {userIsOwner && <span className="ml-2 text-xs bg-yellow-500 text-white px-2 py-0.5 rounded-full">Owner</span>}
         </div>
         
         <div 
@@ -393,7 +577,9 @@ const Chat = () => {
                   ? "bg-blue-500/80 text-white float-right text-right" 
                   : msg.user === "System"
                     ? "bg-purple-500/80 text-white mx-auto clear-both text-center"
-                    : "bg-white/80 float-left text-left"
+                    : msg.text && msg.text.includes("[BROADCAST]")
+                      ? "bg-yellow-500/80 text-white w-full clear-both text-center"
+                      : "bg-white/80 float-left text-left"
               }`}
             >
               <div><strong>{msg.user}:</strong> <span dangerouslySetInnerHTML={{ __html: msg.text }} /></div>
@@ -458,6 +644,14 @@ const Chat = () => {
             onClick={() => handleCommandButton("/daily")}
           >
             <Gift className="mr-1" size={14} /> Daily
+          </Button>
+          <Button 
+            variant="outline"
+            size="sm" 
+            className="bg-blue-300/30 text-white border-blue-200 hover:bg-blue-400/50"
+            onClick={() => handleCommandButton("/buyball")}
+          >
+            Buy Ball
           </Button>
         </div>
         
