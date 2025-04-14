@@ -1,16 +1,18 @@
+
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle } from "lucide-react";
+import { ChevronLeft, Send, Award, User, Wallet, Package, Gamepad, Gift, HelpCircle, Users } from "lucide-react";
 import { db } from "../firebase";
-import { ref, onChildAdded, push } from "firebase/database";
+import { ref, onChildAdded, push, onValue, onDisconnect, set, remove } from "firebase/database";
 
 const Chat = () => {
   const [message, setMessage] = useState<string>("");
   const [messages, setMessages] = useState<any[]>([]);
   const [username, setUsername] = useState<string>("");
+  const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
   const [playerData, setPlayerData] = useState({
     inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
     wallet: 500,
@@ -60,11 +62,31 @@ const Chat = () => {
       setMessages(prev => [...prev, message]);
     });
 
-    // Clean up listener on unmount
+    // Set up presence system
+    const onlineUsersRef = ref(db, "online");
+    const myPresenceRef = ref(db, `online/${storedUsername}`);
+    
+    // When this client connects, add them to the presence list
+    set(myPresenceRef, true);
+    
+    // When client disconnects, remove them from the presence list
+    onDisconnect(myPresenceRef).remove();
+    
+    // Listen for changes in the online users list
+    const onlineUnsubscribe = onValue(onlineUsersRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const users = Object.keys(snapshot.val());
+        setOnlineUsers(users);
+      } else {
+        setOnlineUsers([]);
+      }
+    });
+
+    // Clean up listeners on unmount
     return () => {
-      // Firebase v9 doesn't use off() anymore
-      // The returned function from onChildAdded is the unsubscribe function
       unsubscribe();
+      onlineUnsubscribe();
+      remove(myPresenceRef); // Explicitly remove when component unmounts
     };
   }, [navigate]);
 
@@ -311,12 +333,23 @@ const Chat = () => {
       {/* Left sidebar - Online Trainers */}
       <div className="hidden md:block w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-r border-blue-300">
         <h2 className="text-white font-bold mb-4 flex items-center">
-          <User className="mr-2" size={18} /> Online Trainers
-          <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">0 online</span>
+          <Users className="mr-2" size={18} /> Online Trainers
+          <span className="ml-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full">{onlineUsers.length} online</span>
         </h2>
-        <div className="text-white/70 italic">
-          No trainers online
-        </div>
+        {onlineUsers.length > 0 ? (
+          <div className="space-y-2">
+            {onlineUsers.map((user, index) => (
+              <div key={index} className="flex items-center text-white">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                <span>{user}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-white/70 italic">
+            No trainers online
+          </div>
+        )}
       </div>
       
       {/* Main Chat Area */}
