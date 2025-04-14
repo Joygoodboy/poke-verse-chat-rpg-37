@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { ChevronLeft, Send, Award, User, Wallet, Package, Sword, Gift, HelpCircle } from "lucide-react";
-import firebase from "../firebase";
+import { db } from "../firebase";
+import { ref, onChildAdded, push } from "firebase/database";
 
 const Chat = () => {
   const [message, setMessage] = useState<string>("");
@@ -54,15 +55,17 @@ const Chat = () => {
     }
 
     // Set up Firebase listener for chat messages
-    const chatRef = firebase.database().ref("chat");
-    chatRef.on("child_added", (snapshot) => {
+    const chatRef = ref(db, "chat");
+    const unsubscribe = onChildAdded(chatRef, (snapshot) => {
       const message = snapshot.val();
       setMessages(prev => [...prev, message]);
     });
 
     // Clean up listener on unmount
     return () => {
-      chatRef.off();
+      // Firebase v9 doesn't use off() anymore
+      // The returned function from onChildAdded is the unsubscribe function
+      unsubscribe();
     };
   }, [navigate]);
 
@@ -74,7 +77,8 @@ const Chat = () => {
   }, [messages]);
 
   const broadcast = (text: string, image: string | null = null) => {
-    firebase.database().ref("chat").push({ user: username, text, image });
+    const chatRef = ref(db, "chat");
+    push(chatRef, { user: username, text, image });
   };
 
   const handleCommand = async () => {
