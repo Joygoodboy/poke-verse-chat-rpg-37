@@ -24,15 +24,114 @@ export class PokemonFuser {
         } : null
       };
 
-      // In a real implementation, this would call the AI API
-      // For now, we'll create a fusion based on the Pokemon data
-      return this.createDefaultFusion(pokemon1, pokemon2, pokemon3);
+      // For now, we'll create an enhanced fusion based on the Pokemon data
+      return this.createEnhancedFusion(pokemon1, pokemon2, pokemon3);
     } catch (error) {
       console.error('Failed to create fusion:', error);
       
-      // Fallback to default fusion if AI fails
+      // Fallback to default fusion if something fails
       return this.createDefaultFusion(pokemon1, pokemon2, pokemon3);
     }
+  }
+
+  createEnhancedFusion(pokemon1, pokemon2, pokemon3 = null) {
+    // Generate a fusion with more visual elements from all Pokémon
+    const combinedName = this.combineNames(
+      pokemon1.name, 
+      pokemon2.name, 
+      pokemon3 ? pokemon3.name : ''
+    );
+    
+    // Combine types intelligently (prioritize unique types)
+    const combinedTypes = [...new Set([
+      ...pokemon1.types.map(t => t.type.name), 
+      ...pokemon2.types.map(t => t.type.name),
+      ...(pokemon3 ? pokemon3.types.map(t => t.type.name) : [])
+    ])].slice(0, 3);
+
+    // Create abilities that combine aspects of each Pokémon
+    const fusedAbilities = this.createFusedAbilities(
+      pokemon1.abilities, 
+      pokemon2.abilities,
+      pokemon3 ? pokemon3.abilities : null
+    );
+
+    // Generate a description based on all parent Pokémon
+    const description = this.generateFusionDescription(
+      pokemon1, 
+      pokemon2, 
+      pokemon3,
+      combinedTypes
+    );
+
+    // For the image, we'll use a combination approach - here we just use the first Pokémon
+    // In a real app, you would use an image generation service
+    const spriteOptions = [
+      pokemon1.sprites.other["official-artwork"]?.front_default,
+      pokemon1.sprites.other.home?.front_default,
+      pokemon1.sprites.front_default
+    ];
+    
+    // Find the first available sprite image
+    const baseImage = spriteOptions.find(sprite => sprite) || '';
+
+    return {
+      name: combinedName,
+      type: combinedTypes,
+      description: description,
+      stats: this.averageStats(
+        this.transformStats(pokemon1.stats), 
+        this.transformStats(pokemon2.stats),
+        pokemon3 ? this.transformStats(pokemon3.stats) : null
+      ),
+      abilities: fusedAbilities,
+      image: baseImage,
+    };
+  }
+
+  createFusedAbilities(abilities1, abilities2, abilities3 = null) {
+    // Extract ability names
+    const ability1Names = abilities1.map(a => a.ability.name);
+    const ability2Names = abilities2.map(a => a.ability.name);
+    const ability3Names = abilities3 ? abilities3.map(a => a.ability.name) : [];
+    
+    // Create a primary fusion ability
+    const fusionAbility = {
+      name: this.combineWords([
+        ability1Names[0] || "Unknown", 
+        ability2Names[0] || "Power",
+        abilities3 ? ability3Names[0] : null
+      ]),
+      description: `A unique ability combining the powers of ${
+        ability1Names[0] || "unknown"}, ${ability2Names[0] || "unknown"}${
+        abilities3 ? ` and ${ability3Names[0] || "unknown"}` : ""}`
+    };
+    
+    // Create a secondary specialized ability
+    const specializedAbility = {
+      name: `${abilities3 ? "Tri" : "Dual"}-Nature`,
+      description: `This Pokémon can harness the natural talents of ${
+        pokemon1.name}, ${pokemon2.name}${pokemon3 ? ` and ${pokemon3.name}` : ""} simultaneously.`
+    };
+    
+    return [fusionAbility, specializedAbility];
+  }
+
+  generateFusionDescription(pokemon1, pokemon2, pokemon3, types) {
+    const isTri = pokemon3 !== null;
+    const typePhrase = types.length > 1 
+      ? `${types.slice(0, -1).join(", ")} and ${types[types.length - 1]}` 
+      : types[0];
+      
+    const heightAvg = (pokemon1.height + pokemon2.height + (pokemon3 ? pokemon3.height : 0)) / (isTri ? 3 : 2);
+    const weightAvg = (pokemon1.weight + pokemon2.weight + (pokemon3 ? pokemon3.weight : 0)) / (isTri ? 3 : 2);
+    
+    const sizeDesc = heightAvg > 15 ? "towering" : heightAvg < 5 ? "compact" : "medium-sized";
+    const buildDesc = weightAvg > 1000 ? "massive" : weightAvg < 100 ? "lightweight" : "balanced";
+    
+    return `A ${sizeDesc}, ${buildDesc} ${isTri ? "tri" : "dual"}-fusion of ${pokemon1.name}, ${pokemon2.name}${
+      isTri ? ` and ${pokemon3.name}` : ""
+    }. This ${typePhrase}-type Pokémon inherits unique characteristics from each of its parent species, combining their strengths in unprecedented ways.`;
   }
 
   createDefaultFusion(pokemon1, pokemon2, pokemon3 = null) {
@@ -52,7 +151,7 @@ export class PokemonFuser {
     return {
       name: combinedName,
       type: combinedTypes,
-      description: `A mysterious tri-fusion of ${pokemon1.name}, ${pokemon2.name}${pokemon3 ? ` and ${pokemon3.name}` : ''}`,
+      description: `A mysterious ${pokemon3 ? "tri" : "dual"}-fusion of ${pokemon1.name}, ${pokemon2.name}${pokemon3 ? ` and ${pokemon3.name}` : ''}`,
       stats: this.averageStats(
         this.transformStats(pokemon1.stats), 
         this.transformStats(pokemon2.stats),
@@ -60,8 +159,8 @@ export class PokemonFuser {
       ),
       abilities: [
         {
-          name: "Tri-Fusion Power",
-          description: "Combines the strengths of three Pokemon in unprecedented ways."
+          name: `${pokemon3 ? "Tri" : "Dual"}-Fusion Power`,
+          description: `Combines the strengths of ${pokemon3 ? "three" : "two"} Pokémon in unprecedented ways.`
         }
       ],
       image: pokemon1.sprites.other["official-artwork"].front_default,
@@ -82,6 +181,17 @@ export class PokemonFuser {
     ).join('').slice(0, halfLength);
     
     return (firstPart.charAt(0).toUpperCase() + firstPart.slice(1) + secondPart);
+  }
+
+  combineWords(words) {
+    const filteredWords = words.filter(Boolean);
+    
+    // For just 1 word, return it
+    if (filteredWords.length === 1) return filteredWords[0];
+    
+    // For 2+ words, combine parts
+    const firstParts = filteredWords.map(word => word.slice(0, Math.ceil(word.length / filteredWords.length)));
+    return firstParts.join('');
   }
 
   averageStats(stats1, stats2, stats3 = null) {
@@ -146,5 +256,12 @@ export class PokemonFuser {
     });
 
     return mergedFusion;
+  }
+
+  // Add a method to generate image prompts
+  generateImagePrompt(fusionData, parentPokemon) {
+    const typeDesc = fusionData.type.join(' and ');
+    
+    return `A high-quality official artwork style image of a new Pokémon fusion named ${fusionData.name}, which is a combination of ${parentPokemon.pokemon1Name}${parentPokemon.pokemon2Name ? `, ${parentPokemon.pokemon2Name}` : ''}${parentPokemon.pokemon3Name ? ` and ${parentPokemon.pokemon3Name}` : ''}. It is a ${typeDesc} type Pokémon with unique characteristics from all parent Pokémon.`;
   }
 }

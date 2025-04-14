@@ -1,10 +1,10 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft } from "lucide-react";
 import { PokemonFuser } from "../components/pokemonFuser";
+import { ImageGenerator } from "../components/imageGenerator";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 
@@ -20,6 +20,7 @@ const FusionLab = () => {
   
   const navigate = useNavigate();
   const pokemonFuser = new PokemonFuser();
+  const imageGenerator = new ImageGenerator();
 
   useEffect(() => {
     // Fetch Pokemon list from PokeAPI
@@ -95,6 +96,22 @@ const FusionLab = () => {
         pokemon2Data, 
         pokemon3Data
       );
+      
+      // Generate a prompt for the image
+      const imagePrompt = await pokemonFuser.generateImagePrompt(
+        fusionResult, 
+        {
+          pokemon1Name: pokemon1,
+          pokemon2Name: pokemon2,
+          pokemon3Name: showThirdPokemon ? pokemon3 : null
+        }
+      );
+      
+      // Generate an image using the prompt
+      const imageUrl = await imageGenerator.generateImage(imagePrompt);
+      
+      // Update the fusion with the image URL
+      fusionResult.image = imageUrl;
       
       setFusion(fusionResult);
       toast.success(`Successfully created ${fusionResult.name}!`);

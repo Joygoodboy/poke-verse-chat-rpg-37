@@ -1,3 +1,4 @@
+
 export class ImageGenerator {
   constructor() {
     this.pollinationsEndpoint = 'https://image.pollinations.ai/prompt/';
