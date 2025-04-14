@@ -1,7 +1,7 @@
 
-import firebase from "firebase/compat/app";
-import "firebase/compat/database";
-import "firebase/compat/auth";
+import { initializeApp } from 'firebase/app';
+import { getDatabase } from 'firebase/database';
+import { getAuth } from 'firebase/auth';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -15,12 +15,10 @@ const firebaseConfig = {
   measurementId: "G-VB97LQB3MC"
 };
 
-// Initialize Firebase if it hasn't been initialized yet
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
 
-export const db = firebase.database();
-export const auth = firebase.auth();
+export const db = getDatabase(app);
+export const auth = getAuth(app);
 
-export default firebase;
+export default app;
