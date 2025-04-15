@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
@@ -8,25 +8,44 @@ import { OnlineUsers } from "@/components/chat/OnlineUsers";
 import { PlayerInfo } from "@/components/chat/PlayerInfo";
 import { BattleField } from "@/components/chat/BattleField";
 import { PokemonSelector } from "@/components/chat/PokemonSelector";
-import { useChat } from "@/hooks/useChat";
+import { useChat, availableCommands, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
 import { usePokemonBattle } from "@/hooks/usePokemonBattle";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
-import { Card } from "@/components/ui/card";
-
-const OWNER_LIST = ["Ash", "admin@pokemon.com", "owner@pokemon.com"];
-const ADMIN_LIST = ["Gary", "mod@pokemon.com", "moderator@pokemon.com"];
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import {
+  HelpCircle,
+  Gamepad2,
+  Wallet,
+  DollarSign,
+  Award,
+  UserMinus,
+  Shield,
+  ZapIcon
+} from "lucide-react";
+import { CommandButtons } from "@/components/chat/CommandButtons";
 
 const Chat = () => {
   const navigate = useNavigate();
   const username = localStorage.getItem("loggedInUser") || "";
+  const { toast } = useToast();
+  const commandsContainerRef = useRef<HTMLDivElement>(null);
   
   if (!username) {
     navigate("/login");
     return null;
   }
 
-  const { messages, playerData, broadcast, commandSystemRef } = useChat(username);
+  const { 
+    messages, 
+    playerData, 
+    broadcast, 
+    commandSystemRef, 
+    handleCommand 
+  } = useChat(username);
+  
   const onlineUsers = useOnlineUsers(username);
   
   const {
@@ -48,7 +67,7 @@ const Chat = () => {
   const userIsAdmin = isAdminUser(username, OWNER_LIST, ADMIN_LIST);
   const userIsOwner = isOwnerUser(username, OWNER_LIST);
 
-  const handleCommand = async (message: string) => {
+  const handleSendCommand = async (message: string) => {
     if (!message.trim()) return;
     
     // Handle battle-related commands
@@ -98,6 +117,27 @@ const Chat = () => {
       return;
     }
     
+    // Special commands that should be handled directly
+    if (message.startsWith('/help')) {
+      handleCommand('/help');
+      return;
+    }
+    
+    if (message.startsWith('/lb') || message.startsWith('/leaderboard')) {
+      handleCommand('/lb');
+      return;
+    }
+    
+    if (message.startsWith('/rob')) {
+      const args = message.split(' ');
+      if (args.length < 2) {
+        broadcast("Usage: /rob <username>");
+        return;
+      }
+      handleCommand(message);
+      return;
+    }
+    
     // Broadcast the message to chat
     broadcast(message);
     
@@ -118,12 +158,44 @@ const Chat = () => {
   };
 
   const handleBanUser = (user: string) => {
-    handleCommand(`/ban ${user}`);
+    handleSendCommand(`/ban ${user}`);
   };
   
   const handleSelectPokemon = (pokemon: any) => {
     selectPokemon(pokemon, broadcast);
   };
+
+  const handleCommandButtonClick = (command: string) => {
+    handleSendCommand(`/${command}`);
+    toast({
+      title: `Command executed: /${command}`,
+      description: "Check the chat for results",
+      duration: 3000,
+    });
+  };
+
+  // Group commands by category for the command buttons
+  const economyCommands = [
+    { name: "wallet", icon: <Wallet size={18} /> },
+    { name: "slot", icon: <DollarSign size={18} /> },
+    { name: "daily", icon: <Award size={18} /> },
+    { name: "shop", icon: <DollarSign size={18} /> },
+    { name: "lb", icon: <Award size={18} /> }
+  ];
+
+  const pokemonCommands = [
+    { name: "spawn", icon: <Gamepad2 size={18} /> },
+    { name: "party", icon: <Gamepad2 size={18} /> },
+    { name: "pc", icon: <Gamepad2 size={18} /> },
+    { name: "rb", icon: <ZapIcon size={18} /> }
+  ];
+
+  const adminCommands = userIsAdmin ? [
+    { name: "ban", icon: <UserMinus size={18} /> },
+    { name: "unban", icon: <UserMinus size={18} /> },
+    { name: "owner", icon: <Shield size={18} /> },
+    { name: "mods", icon: <Shield size={18} /> }
+  ] : [];
 
   return (
     <div className="flex h-screen bg-blue-500">
@@ -140,6 +212,44 @@ const Chat = () => {
           isAdmin={userIsAdmin}
           isOwner={userIsOwner}
         />
+        
+        {/* Command Buttons */}
+        <div 
+          ref={commandsContainerRef}
+          className="p-2 bg-blue-600/40 backdrop-blur-sm flex flex-wrap gap-2 overflow-x-auto"
+        >
+          <Button 
+            variant="secondary" 
+            className="flex items-center gap-1 bg-indigo-700 hover:bg-indigo-800 text-white"
+            onClick={() => handleCommandButtonClick('help')}
+          >
+            <HelpCircle size={18} />
+            Help
+          </Button>
+          
+          <CommandButtons 
+            title="Economy" 
+            commands={economyCommands} 
+            onCommandClick={handleCommandButtonClick}
+            className="bg-green-700 hover:bg-green-800"
+          />
+          
+          <CommandButtons 
+            title="Pokémon" 
+            commands={pokemonCommands} 
+            onCommandClick={handleCommandButtonClick}
+            className="bg-red-700 hover:bg-red-800"
+          />
+          
+          {userIsAdmin && (
+            <CommandButtons 
+              title="Admin" 
+              commands={adminCommands} 
+              onCommandClick={handleCommandButtonClick}
+              className="bg-purple-800 hover:bg-purple-900"
+            />
+          )}
+        </div>
         
         {/* Battle UI */}
         {activeBattle && (
@@ -172,7 +282,7 @@ const Chat = () => {
         />
         
         <ChatInput 
-          onSendMessage={handleCommand}
+          onSendMessage={handleSendCommand}
         />
       </div>
       
