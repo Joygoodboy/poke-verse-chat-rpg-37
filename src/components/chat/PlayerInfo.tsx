@@ -3,10 +3,12 @@ import React from 'react';
 import { Card } from "@/components/ui/card";
 import { User, Wallet, Package, Gamepad } from "lucide-react";
 
-interface Pokemon {
+export interface Pokemon {
   name: string;
   image?: string;
   level: number;
+  xp?: number;
+  type?: string;
 }
 
 interface PlayerData {
@@ -28,7 +30,7 @@ interface PlayerInfoProps {
 
 export const PlayerInfo: React.FC<PlayerInfoProps> = ({ username, playerData }) => {
   return (
-    <div className="flex flex-col w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-l border-blue-300 gap-4">
+    <div className="hidden md:flex flex-col w-64 bg-blue-200/30 backdrop-blur-sm p-4 border-l border-blue-300 gap-4">
       <Card className="bg-yellow-100 border-2 border-yellow-300 p-4 text-blue-900">
         <h2 className="font-bold mb-3 flex items-center text-lg">
           <User className="mr-2" size={18} /> {username}

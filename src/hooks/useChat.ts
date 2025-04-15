@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, onChildAdded, push } from 'firebase/database';
 import { createCommandSystem } from '../utils/gameCommands';
+import { Pokemon } from '@/components/chat/PlayerInfo';
 
 export interface Message {
   user: string;
@@ -10,9 +11,25 @@ export interface Message {
   image?: string | null;
 }
 
+export interface PlayerData {
+  inventory: { pokeball: number, greatball: number, ultraball: number, masterball: number };
+  wallet: number;
+  bank: number;
+  party: Pokemon[];
+  pc: any[];
+  lastSpawn: any;
+  lastDailyClaim: number | null;
+  xp: number;
+  level: number;
+  bonusUsed: boolean;
+  lastSlotPlay: number | null;
+  lastInterestClaim: number | null;
+  bannedUsers: string[];
+}
+
 export const useChat = (username: string) => {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [playerData, setPlayerData] = useState({
+  const [playerData, setPlayerData] = useState<PlayerData>({
     inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
     wallet: 500,
     bank: 0,
