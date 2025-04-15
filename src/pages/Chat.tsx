@@ -1,12 +1,16 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { OnlineUsers } from "@/components/chat/OnlineUsers";
+import { PlayerInfo } from "@/components/chat/PlayerInfo";
 import { useChat } from "@/hooks/useChat";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
+import { Card } from "@/components/ui/card";
+import { User, Wallet, Package, Gamepad } from "lucide-react";
 
 const OWNER_LIST = ["Ash", "admin@pokemon.com", "owner@pokemon.com"];
 const ADMIN_LIST = ["Gary", "mod@pokemon.com", "moderator@pokemon.com"];
