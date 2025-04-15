@@ -12,8 +12,6 @@ import { useChat, availableCommands, OWNER_LIST, ADMIN_LIST } from "@/hooks/useC
 import { usePokemonBattle } from "@/hooks/usePokemonBattle";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import {
   HelpCircle,
@@ -23,7 +21,12 @@ import {
   Award,
   UserMinus,
   Shield,
-  ZapIcon
+  ZapIcon,
+  Users,
+  Gift,
+  PackageIcon,
+  ShoppingCart,
+  Calculator
 } from "lucide-react";
 import { CommandButtons } from "@/components/chat/CommandButtons";
 
@@ -116,7 +119,7 @@ const Chat = () => {
       forfeitBattle(broadcast);
       return;
     }
-    
+
     // Special commands that should be handled directly
     if (message.startsWith('/help')) {
       handleCommand('/help');
@@ -137,23 +140,65 @@ const Chat = () => {
       handleCommand(message);
       return;
     }
+
+    // Special handling for /spawn command to ensure it always works
+    if (message.startsWith('/spawn')) {
+      // Call the command directly from the command system
+      if (commandSystemRef && commandSystemRef['spawn']) {
+        const userData = { 
+          isOwner: userIsOwner,
+          isAdmin: userIsAdmin
+        };
+        
+        const response = commandSystemRef['spawn']([], userData);
+        broadcast(response);
+      } else {
+        // Fallback method for spawn
+        fetch(`https://pokeapi.co/api/v2/pokemon/${Math.floor(Math.random() * 151) + 1}`)
+          .then(response => response.json())
+          .then(data => {
+            const pokemon = {
+              name: data.name,
+              image: data.sprites.other["official-artwork"].front_default,
+              level: Math.floor(Math.random() * 5) + 1,
+              xp: 0,
+              hp: 50,
+              maxHp: 50,
+              attack: 25,
+              defense: 20,
+              speed: 15,
+              type: data.types[0].type.name,
+              moves: []
+            };
+            
+            broadcast(`A wild ${pokemon.name} appeared!`, pokemon.image);
+          })
+          .catch(err => {
+            console.error("Error fetching Pokémon:", err);
+            broadcast("Error spawning Pokémon. Please try again.");
+          });
+      }
+      return;
+    }
     
     // Broadcast the message to chat
     broadcast(message);
     
     // Process standard commands
-    const args = message.split(" ");
-    const base = args[0].toLowerCase();
-    const commandName = base.replace('/', '');
-    
-    if (commandSystemRef && commandSystemRef[commandName]) {
-      const userData = { 
-        isOwner: userIsOwner,
-        isAdmin: userIsAdmin
-      };
+    if (message.startsWith('/')) {
+      const args = message.split(" ");
+      const base = args[0].toLowerCase();
+      const commandName = base.replace('/', '');
       
-      const response = commandSystemRef[commandName](args.slice(1), userData);
-      broadcast(response);
+      if (commandSystemRef && commandSystemRef[commandName]) {
+        const userData = { 
+          isOwner: userIsOwner,
+          isAdmin: userIsAdmin
+        };
+        
+        const response = commandSystemRef[commandName](args.slice(1), userData);
+        broadcast(response);
+      }
     }
   };
 
@@ -178,14 +223,14 @@ const Chat = () => {
   const economyCommands = [
     { name: "wallet", icon: <Wallet size={18} /> },
     { name: "slot", icon: <DollarSign size={18} /> },
-    { name: "daily", icon: <Award size={18} /> },
-    { name: "shop", icon: <DollarSign size={18} /> },
+    { name: "daily", icon: <Gift size={18} /> },
+    { name: "shop", icon: <ShoppingCart size={18} /> },
     { name: "lb", icon: <Award size={18} /> }
   ];
 
   const pokemonCommands = [
     { name: "spawn", icon: <Gamepad2 size={18} /> },
-    { name: "party", icon: <Gamepad2 size={18} /> },
+    { name: "party", icon: <Users size={18} /> },
     { name: "pc", icon: <Gamepad2 size={18} /> },
     { name: "rb", icon: <ZapIcon size={18} /> }
   ];
@@ -218,27 +263,76 @@ const Chat = () => {
           ref={commandsContainerRef}
           className="p-2 bg-blue-600/40 backdrop-blur-sm flex flex-wrap gap-2 overflow-x-auto"
         >
-          <Button 
-            variant="secondary" 
-            className="flex items-center gap-1 bg-indigo-700 hover:bg-indigo-800 text-white"
-            onClick={() => handleCommandButtonClick('help')}
-          >
-            <HelpCircle size={18} />
-            Help
-          </Button>
+          <CommandButtons 
+            title="Help" 
+            commands={[]} 
+            onCommandClick={handleCommandButtonClick}
+            className="bg-indigo-700 hover:bg-indigo-800 text-white"
+            icon={<HelpCircle size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Spawn" 
+            commands={[]}
+            onCommandClick={handleCommandButtonClick}
+            className="bg-green-700 hover:bg-green-800 text-white"
+            icon={<Gamepad2 size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Party" 
+            commands={[]}
+            onCommandClick={handleCommandButtonClick}
+            className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            icon={<Users size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Rank" 
+            commands={[]}
+            onCommandClick={() => handleCommandButtonClick("lb")}
+            className="bg-purple-700 hover:bg-purple-800 text-white"
+            icon={<Award size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Inventory" 
+            commands={[]}
+            onCommandClick={handleCommandButtonClick}
+            className="bg-red-700 hover:bg-red-800 text-white"
+            icon={<PackageIcon size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Shop" 
+            commands={[]}
+            onCommandClick={handleCommandButtonClick}
+            className="bg-blue-700 hover:bg-blue-800 text-white"
+            icon={<ShoppingCart size={18} />}
+          />
+          
+          <CommandButtons 
+            title="Daily" 
+            commands={[]}
+            onCommandClick={handleCommandButtonClick}
+            className="bg-amber-600 hover:bg-amber-700 text-white"
+            icon={<Gift size={18} />}
+          />
           
           <CommandButtons 
             title="Economy" 
             commands={economyCommands} 
             onCommandClick={handleCommandButtonClick}
-            className="bg-green-700 hover:bg-green-800"
+            className="bg-green-700 hover:bg-green-800 text-white"
+            icon={<Calculator size={18} />}
           />
           
           <CommandButtons 
             title="Pokémon" 
             commands={pokemonCommands} 
             onCommandClick={handleCommandButtonClick}
-            className="bg-red-700 hover:bg-red-800"
+            className="bg-red-700 hover:bg-red-800 text-white"
+            icon={<Gamepad2 size={18} />}
           />
           
           {userIsAdmin && (
@@ -246,7 +340,8 @@ const Chat = () => {
               title="Admin" 
               commands={adminCommands} 
               onCommandClick={handleCommandButtonClick}
-              className="bg-purple-800 hover:bg-purple-900"
+              className="bg-purple-800 hover:bg-purple-900 text-white"
+              icon={<Shield size={18} />}
             />
           )}
         </div>
@@ -283,6 +378,7 @@ const Chat = () => {
         
         <ChatInput 
           onSendMessage={handleSendCommand}
+          placeholder="Chat or enter a command (/help)..."
         />
       </div>
       

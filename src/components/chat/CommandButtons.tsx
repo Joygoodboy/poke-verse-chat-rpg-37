@@ -11,23 +11,42 @@ interface CommandButtonsProps {
   }>;
   onCommandClick: (command: string) => void;
   className?: string;
+  variant?: "default" | "secondary" | "outline" | "primary";
+  icon?: React.ReactNode;
 }
 
 export const CommandButtons: React.FC<CommandButtonsProps> = ({
   title,
   commands,
   onCommandClick,
-  className = ""
+  className = "",
+  variant = "secondary",
+  icon
 }) => {
   const [expanded, setExpanded] = useState(false);
+
+  // If it's a single button (no dropdown needed)
+  if (commands.length === 0) {
+    return (
+      <Button 
+        variant={variant} 
+        className={`flex items-center gap-1 ${className}`}
+        onClick={() => onCommandClick(title.toLowerCase())}
+      >
+        {icon && icon}
+        {title}
+      </Button>
+    );
+  }
 
   return (
     <div className="relative">
       <Button 
-        variant="secondary" 
-        className={`flex items-center gap-1 text-white ${className}`}
+        variant={variant} 
+        className={`flex items-center gap-1 ${className}`}
         onClick={() => setExpanded(!expanded)}
       >
+        {icon && icon}
         {title}
         {expanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
       </Button>

@@ -6,9 +6,13 @@ import { Send } from "lucide-react";
 
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
+  placeholder?: string;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ 
+  onSendMessage, 
+  placeholder = "Chat or enter a command (/help)..." 
+}) => {
   const [message, setMessage] = useState('');
 
   const handleSend = () => {
@@ -30,11 +34,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyPress={handleKeyPress}
-        placeholder="Chat or enter a command (/help)..."
-        className="flex-1 bg-white/90"
+        placeholder={placeholder}
+        className="flex-1 bg-white/90 rounded-md border-none"
       />
       <Button 
-        className="bg-indigo-500 hover:bg-indigo-600 text-white"
+        className="bg-indigo-500 hover:bg-indigo-600 text-white rounded-md"
         onClick={handleSend}
       >
         <Send size={18} />
