@@ -23,8 +23,8 @@ export interface PlayerData {
   wallet: number;
   bank: number;
   party: Pokemon[];
-  pc: any[];
-  lastSpawn: any;
+  pc: Pokemon[];
+  lastSpawn: Pokemon | null;
   lastDailyClaim: number | null;
   xp: number;
   level: number;

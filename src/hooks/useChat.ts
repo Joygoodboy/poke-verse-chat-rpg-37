@@ -26,7 +26,8 @@ export const useChat = (username: string) => {
       handleLeaderboardCommand(broadcast);
       return;
     } else if (command === 'catch') {
-      handleCatchCommand(playerData, setPlayerData, broadcast, args[1]);
+      const ballType = args.length > 1 ? args[1] : undefined;
+      handleCatchCommand(playerData, setPlayerData, broadcast, ballType);
       return;
     } else if (command === 'spawn') {
       handleSpawnCommand(playerData, setPlayerData, broadcast);

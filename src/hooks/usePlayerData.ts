@@ -31,6 +31,7 @@ export const usePlayerData = (username: string) => {
         
         if (snapshot.exists()) {
           const savedData = snapshot.val();
+          console.log("Loaded player data:", savedData);
           setPlayerData(savedData);
         } else {
           // If no data exists in Firebase, check localStorage as fallback
@@ -62,6 +63,7 @@ export const usePlayerData = (username: string) => {
 
   // Save player data when it changes
   useEffect(() => {
+    console.log("Saving player data:", playerData);
     localStorage.setItem("pokemonSave", JSON.stringify(playerData));
     const playerRef = ref(db, `players/${username}`);
     set(playerRef, playerData).catch(err => {

@@ -65,27 +65,38 @@ export const handleCatchCommand = (
   
   const success = Math.random() < catchRates[ball];
   
-  setPlayerData(prev => {
-    const updated = { ...prev };
-    updated.inventory[ball as keyof typeof updated.inventory] -= 1;
-    
-    if (success) {
-      if (updated.party.length < 6) {
-        updated.party.push(updated.lastSpawn as Pokemon);
-        broadcast(`You caught ${updated.lastSpawn?.name}! Added to your party.`);
-      } else {
-        if (!updated.pc) updated.pc = [];
-        updated.pc.push(updated.lastSpawn as Pokemon);
-        broadcast(`Party full! ${updated.lastSpawn?.name} was sent to PC.`);
-      }
-      updated.lastSpawn = null;
-    } else {
-      broadcast(`Oh no! ${updated.lastSpawn?.name} broke free and ran away!`);
-      updated.lastSpawn = null;
+  // Make a copy of playerData to modify
+  const updatedPlayerData = { ...playerData };
+  
+  // Decrease ball count
+  updatedPlayerData.inventory[ball as keyof typeof updatedPlayerData.inventory] -= 1;
+  
+  if (success) {
+    // Ensure party array exists
+    if (!updatedPlayerData.party) {
+      updatedPlayerData.party = [];
     }
     
-    return updated;
-  });
+    if (updatedPlayerData.party.length < 6) {
+      updatedPlayerData.party.push(updatedPlayerData.lastSpawn as Pokemon);
+      broadcast(`You caught ${updatedPlayerData.lastSpawn?.name}! Added to your party.`);
+    } else {
+      // Ensure PC array exists
+      if (!updatedPlayerData.pc) {
+        updatedPlayerData.pc = [];
+      }
+      updatedPlayerData.pc.push(updatedPlayerData.lastSpawn as Pokemon);
+      broadcast(`Party full! ${updatedPlayerData.lastSpawn?.name} was sent to PC.`);
+    }
+  } else {
+    broadcast(`Oh no! ${updatedPlayerData.lastSpawn?.name} broke free and ran away!`);
+  }
+  
+  // Clear the lastSpawn after processing
+  updatedPlayerData.lastSpawn = null;
+  
+  // Update player data with the modified copy
+  setPlayerData(updatedPlayerData);
 };
 
 export const handleSpawnCommand = async (
@@ -111,10 +122,12 @@ export const handleSpawnCommand = async (
       moves: data.moves.slice(0, 4).map((m: any) => m.move.name)
     };
     
-    setPlayerData(prev => ({
-      ...prev,
-      lastSpawn: pokemon
-    }));
+    // Create a new object to avoid mutation issues
+    const updatedPlayerData = { ...playerData };
+    updatedPlayerData.lastSpawn = pokemon;
+    
+    // Update player data with the modified copy
+    setPlayerData(updatedPlayerData);
     
     broadcast(`A wild ${pokemon.name} appeared!`, pokemon.image);
     

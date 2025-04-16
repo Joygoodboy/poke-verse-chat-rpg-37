@@ -146,39 +146,7 @@ const Chat = () => {
     }
 
     if (message.startsWith('/spawn')) {
-      if (commandSystemRef && commandSystemRef['spawn']) {
-        const userData = { 
-          isOwner: userIsOwner,
-          isAdmin: userIsAdmin
-        };
-        
-        const response = commandSystemRef['spawn']([], userData);
-        broadcast(response);
-      } else {
-        fetch(`https://pokeapi.co/api/v2/pokemon/${Math.floor(Math.random() * 151) + 1}`)
-          .then(response => response.json())
-          .then(data => {
-            const pokemon = {
-              name: data.name,
-              image: data.sprites.other["official-artwork"].front_default,
-              level: Math.floor(Math.random() * 5) + 1,
-              xp: 0,
-              hp: 50,
-              maxHp: 50,
-              attack: 25,
-              defense: 20,
-              speed: 15,
-              type: data.types[0].type.name,
-              moves: []
-            };
-            
-            broadcast(`A wild ${pokemon.name} appeared!`, pokemon.image);
-          })
-          .catch(err => {
-            console.error("Error fetching Pokémon:", err);
-            broadcast("Error spawning Pokémon. Please try again.");
-          });
-      }
+      handleCommand(message);
       return;
     }
     
