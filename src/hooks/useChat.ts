@@ -53,7 +53,15 @@ export const useChat = (username: string) => {
     }
   };
 
-  const commandSystemRef = createCommandSystem(playerData, setPlayerData);
+  // Safely initialize command system with error handling
+  let commandSystemRef;
+  try {
+    commandSystemRef = createCommandSystem(playerData, setPlayerData);
+  } catch (error) {
+    console.error("Error initializing command system:", error);
+    // Provide a fallback empty command system
+    commandSystemRef = {};
+  }
 
   return {
     messages,

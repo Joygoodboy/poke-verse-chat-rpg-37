@@ -314,10 +314,17 @@ export const usePokemonBattle = (username: string) => {
     setSelectingPokemon(false);
   };
   
+  const initBattleListener = () => {
+    console.log("Manual battle listener initialization");
+    // This is just a placeholder since the actual initialization happens in useEffect
+    // But we need to provide this function since it's being called in the Chat component
+  };
+
   return {
     activeBattle,
     pendingChallenge,
     selectingPokemon,
+    initBattleListener,
     challengePlayer,
     acceptChallenge,
     selectPokemon,

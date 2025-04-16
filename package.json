@@ -11,6 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@firebase/app-types": "^0.9.3",
     "@firebase/database-types": "^1.0.10",
     "@firebase/firestore-types": "^3.0.3",
     "@hookform/resolvers": "^3.9.0",
@@ -48,7 +49,7 @@
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.3.0",
-    "firebase": "^9.22.2",
+    "firebase": "^11.6.0",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",

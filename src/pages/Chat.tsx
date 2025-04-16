@@ -64,8 +64,10 @@ const Chat = () => {
     forfeitBattle
   } = usePokemonBattle(username);
   
+  // We don't need this useEffect anymore since the battle listener 
+  // is initialized within the usePokemonBattle hook's own useEffect
   useEffect(() => {
-    initBattleListener();
+    console.log("Battle functionality initialized");
   }, []);
   
   const userIsAdmin = isAdminUser(username, OWNER_LIST, ADMIN_LIST);
@@ -157,14 +159,22 @@ const Chat = () => {
       const base = args[0].toLowerCase();
       const commandName = base.replace('/', '');
       
-      if (commandSystemRef && commandSystemRef[commandName]) {
-        const userData = { 
-          isOwner: userIsOwner,
-          isAdmin: userIsAdmin
-        };
-        
-        const response = commandSystemRef[commandName](args.slice(1), userData);
-        broadcast(response);
+      if (commandSystemRef && typeof commandSystemRef === 'object' && typeof commandSystemRef[commandName] === 'function') {
+        try {
+          const userData = { 
+            isOwner: userIsOwner,
+            isAdmin: userIsAdmin
+          };
+          
+          const response = commandSystemRef[commandName](args.slice(1), userData);
+          broadcast(response);
+        } catch (error) {
+          console.error(`Error executing command '${commandName}':`, error);
+          broadcast(`Error executing command '${commandName}'. Please try again later.`);
+        }
+      } else {
+        console.log(`Command '${commandName}' not found or not a function`);
+        broadcast(`Command '${commandName}' not available. Try /help for available commands.`);
       }
     }
   };
