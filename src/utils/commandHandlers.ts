@@ -1,6 +1,6 @@
 
 import { PlayerData, Pokemon } from '@/types/gameTypes';
-import { ref, push, set, get } from 'firebase/database';
+import { ref, push, set, get, remove } from 'firebase/database';
 import { db } from '../firebase';
 
 export const handleLeaderboardCommand = async (broadcast: (text: string) => void) => {
@@ -174,8 +174,42 @@ export const handleHelpCommand = (broadcast: (text: string) => void) => {
 **👑 Admin:**
 /ban [username] - Ban a user (admin only)
 /unban [username] - Unban a user (admin only)
+/clearchat - Clear all chat messages (admin only)
 /owner - See who owns the game
 /mods - See who moderates the game
+
+**🔧 System:**
+/logout - Log out from the game
 `;
   broadcast(helpText);
+};
+
+export const handleClearChatCommand = async (
+  username: string,
+  isAdmin: boolean,
+  broadcast: (text: string) => void
+) => {
+  if (!isAdmin) {
+    broadcast("You don't have permission to use this command. Admin only.");
+    return;
+  }
+
+  try {
+    const chatRef = ref(db, "chat");
+    await remove(chatRef);
+    broadcast(`Chat history has been cleared by admin: ${username}`);
+  } catch (error) {
+    console.error("Error clearing chat:", error);
+    broadcast("Failed to clear chat. Please try again later.");
+  }
+};
+
+export const handleLogoutCommand = (
+  broadcast: (text: string) => void,
+  logout: () => void
+) => {
+  broadcast("Logging out...");
+  setTimeout(() => {
+    logout();
+  }, 1000);
 };

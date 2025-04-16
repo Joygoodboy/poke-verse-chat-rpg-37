@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -27,7 +28,9 @@ import {
   ShoppingCart,
   Calculator,
   Zap,
-  PlusCircle
+  PlusCircle,
+  LogOut,
+  Trash2
 } from "lucide-react";
 import { CommandButtons } from "@/components/chat/CommandButtons";
 import { generateBattleImage, generatePokedexEntry } from '@/utils/battleImageGenerator';
@@ -48,7 +51,8 @@ const Chat = () => {
     playerData, 
     broadcast, 
     commandSystemRef, 
-    handleCommand 
+    handleCommand,
+    logout 
   } = useChat(username);
   
   const onlineUsers = useOnlineUsers(username);
@@ -193,6 +197,16 @@ const Chat = () => {
       return;
     }
     
+    if (message.startsWith('/clearchat')) {
+      handleCommand(message);
+      return;
+    }
+    
+    if (message.startsWith('/logout')) {
+      handleCommand(message);
+      return;
+    }
+    
     broadcast(message);
     
     if (message.startsWith('/')) {
@@ -256,6 +270,7 @@ const Chat = () => {
   const adminCommands = userIsAdmin ? [
     { name: "ban", icon: <UserMinus size={18} /> },
     { name: "unban", icon: <UserMinus size={18} /> },
+    { name: "clearchat", icon: <Trash2 size={18} /> },
     { name: "owner", icon: <Shield size={18} /> },
     { name: "mods", icon: <Shield size={18} /> }
   ] : [];
@@ -361,6 +376,14 @@ const Chat = () => {
               icon={<Shield size={18} />}
             />
           )}
+          
+          <CommandButtons 
+            title="Logout" 
+            commands={[]} 
+            onCommandClick={() => handleCommandButtonClick("logout")}
+            className="bg-red-800 hover:bg-red-900 text-white"
+            icon={<LogOut size={18} />}
+          />
         </div>
         
         {activeBattle && (
