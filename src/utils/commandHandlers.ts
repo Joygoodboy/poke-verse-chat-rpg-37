@@ -166,7 +166,8 @@ export const handleHelpCommand = (broadcast: (text: string) => void) => {
 **⚔️ Battle:**
 /pokemonchallenge [username] or /pch [username] - Challenge player
 /challenge accept or /ch accept - Accept a challenge
-/battle [move-number] - Use a move in battle
+/select [number] - Select a Pokémon from your party for battle by its index
+/battle [move-number] - Use a move in battle (e.g., /battle 1 for first move)
 /forfeit - Give up the battle
 
 **👑 Admin:**

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -7,7 +8,7 @@ import { OnlineUsers } from "@/components/chat/OnlineUsers";
 import { PlayerInfo } from "@/components/chat/PlayerInfo";
 import { BattleField } from "@/components/chat/BattleField";
 import { PokemonSelector } from "@/components/chat/PokemonSelector";
-import { useChat, availableCommands, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
+import { useChat, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
 import { usePokemonBattle } from "@/hooks/usePokemonBattle";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
@@ -76,6 +77,29 @@ const Chat = () => {
   const handleSendCommand = async (message: string) => {
     if (!message.trim()) return;
     
+    // Handle select pokemon command
+    if (message.startsWith('/select') || message.startsWith('/selectpokemon')) {
+      const args = message.split(' ');
+      if (args.length < 2) {
+        broadcast("Usage: /select [number] - Select a Pokémon from your party by its index");
+        return;
+      }
+      
+      const pokemonIndex = parseInt(args[1]);
+      if (isNaN(pokemonIndex) || pokemonIndex < 0 || !playerData.party || pokemonIndex >= playerData.party.length) {
+        broadcast("Invalid Pokémon index. Please use a valid number that corresponds to a Pokémon in your party.");
+        return;
+      }
+      
+      const selectedPokemon = playerData.party[pokemonIndex];
+      if (activeBattle && selectingPokemon) {
+        selectPokemon(selectedPokemon, broadcast);
+      } else {
+        broadcast(`You selected ${selectedPokemon.name} (party index: ${pokemonIndex})`);
+      }
+      return;
+    }
+    
     if (message.startsWith('/pokemonchallenge') || message.startsWith('/pch')) {
       const args = message.split(' ');
       if (args.length < 2) {
@@ -94,6 +118,11 @@ const Chat = () => {
         return;
       }
       
+      if (!playerData.party || playerData.party.length === 0) {
+        broadcast("You need at least one Pokémon in your party to challenge someone! Use /spawn and then /catch to get a Pokémon first.");
+        return;
+      }
+      
       challengePlayer(opponentName, broadcast);
       return;
     }
@@ -102,6 +131,11 @@ const Chat = () => {
       const args = message.split(' ');
       if (args.length < 2 || args[1].toLowerCase() !== 'accept') {
         broadcast("Usage: /challenge accept or /ch accept");
+        return;
+      }
+      
+      if (!playerData.party || playerData.party.length === 0) {
+        broadcast("You need at least one Pokémon in your party to accept a challenge! Use /spawn and then /catch to get a Pokémon first.");
         return;
       }
       
