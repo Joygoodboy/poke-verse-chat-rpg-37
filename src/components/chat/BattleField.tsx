@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BattleState, BattlePokemon } from '@/hooks/usePokemonBattle';
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
@@ -24,6 +24,7 @@ export const BattleField: React.FC<BattleFieldProps> = ({
 }) => {
   const { challenger, opponent, challengerPokemon, opponentPokemon, turn, logs, winner, lastAttack } = battle;
   const [showPokedex, setShowPokedex] = useState(false);
+  const [battleReady, setBattleReady] = useState(false);
   
   const isChallenger = username === challenger;
   const userPokemon = isChallenger ? challengerPokemon : opponentPokemon;
@@ -31,10 +32,24 @@ export const BattleField: React.FC<BattleFieldProps> = ({
   
   const isUserTurn = turn === username;
   
+  // Check if battle is ready (both Pokémon selected)
+  useEffect(() => {
+    if (userPokemon && enemyPokemon) {
+      setBattleReady(true);
+    } else {
+      setBattleReady(false);
+    }
+  }, [userPokemon, enemyPokemon]);
+  
+  // If Pokémon aren't selected yet, show waiting message
   if (!userPokemon || !enemyPokemon) {
     return (
-      <div className="p-4 text-center">
+      <div className="p-4 text-center bg-gradient-to-b from-indigo-900 to-blue-900 rounded-lg text-white shadow-lg animate-pulse">
+        <p className="text-xl font-bold mb-2">⚔️ Battle Starting ⚔️</p>
         <p>Waiting for both trainers to select their Pokémon...</p>
+        <div className="mt-4 flex justify-center">
+          <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+        </div>
       </div>
     );
   }
@@ -52,7 +67,7 @@ export const BattleField: React.FC<BattleFieldProps> = ({
   const battleSceneHtml = generateBattleImage(battle, lastAttack);
   
   return (
-    <div className="bg-gradient-to-b from-indigo-900 to-blue-900 rounded-lg p-4 mb-4 text-white shadow-lg relative overflow-hidden">
+    <div className="bg-gradient-to-b from-indigo-900 to-blue-900 rounded-lg p-4 mb-4 text-white shadow-lg relative overflow-hidden animate-fade-in">
       {/* Background effects */}
       <div className="absolute inset-0 bg-[url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png')] opacity-5 bg-repeat"></div>
       

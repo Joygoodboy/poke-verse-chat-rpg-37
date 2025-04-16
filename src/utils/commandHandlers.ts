@@ -164,7 +164,7 @@ export const handleHelpCommand = (broadcast: (text: string) => void) => {
 /release [index] - Release a Pokémon
 
 **⚔️ Battle:**
-/pokemonchallenge [username] or /pch [username] - Challenge player
+/pokemonchallenge [username] or /pch [username] - Challenge player to a battle
 /challenge accept or /ch accept - Accept a challenge
 /select [number] - Select a Pokémon from your party for battle by its index
 /battle [move-number] - Use a move in battle (e.g., /battle 1 for first move)

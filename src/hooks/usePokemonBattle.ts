@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, push, onValue, set, remove, update, get } from 'firebase/database';
@@ -45,7 +44,6 @@ export const usePokemonBattle = (username: string) => {
   const [pendingChallenge, setPendingChallenge] = useState<string | null>(null);
   const [selectingPokemon, setSelectingPokemon] = useState(false);
   
-  // Initialize battle listener
   useEffect(() => {
     if (!username) return;
     
@@ -56,7 +54,6 @@ export const usePokemonBattle = (username: string) => {
       if (snapshot.exists()) {
         const battles = snapshot.val();
         
-        // Find a battle where the user is involved
         for (const battleId in battles) {
           const battle = battles[battleId] as BattleState;
           
@@ -67,7 +64,8 @@ export const usePokemonBattle = (username: string) => {
               id: battleId
             });
             
-            // Check if user needs to select a Pokémon
+            const bothPokemonSelected = battle.challengerSelectedPokemon && battle.opponentSelectedPokemon;
+            
             if (battle.challenger === username && !battle.challengerSelectedPokemon) {
               setSelectingPokemon(true);
             } else if (battle.opponent === username && !battle.opponentSelectedPokemon) {
@@ -76,12 +74,22 @@ export const usePokemonBattle = (username: string) => {
               setSelectingPokemon(false);
             }
             
+            if (bothPokemonSelected) {
+              setSelectingPokemon(false);
+              
+              if (battle.logs.length > 0 && !battle.logs[battle.logs.length - 1].includes("battle begins")) {
+                const battleUpdatedRef = ref(db, `battles/${battleId}`);
+                update(battleUpdatedRef, {
+                  logs: [...battle.logs, "Both trainers have selected their Pokémon! The battle begins!"]
+                });
+              }
+            }
+            
             return;
           }
         }
       }
       
-      // If we get here, user is not in any battle
       setActiveBattle(null);
       setSelectingPokemon(false);
     });
@@ -91,7 +99,6 @@ export const usePokemonBattle = (username: string) => {
     };
   }, [username]);
   
-  // Challenge another player
   const challengePlayer = (opponentName: string, broadcast: (text: string) => void) => {
     if (activeBattle) {
       broadcast("You are already in a battle!");
@@ -117,7 +124,6 @@ export const usePokemonBattle = (username: string) => {
     setPendingChallenge(opponentName);
   };
   
-  // Accept a challenge
   const acceptChallenge = (broadcast: (text: string) => void) => {
     if (!activeBattle) {
       broadcast("No pending challenge found.");
@@ -142,7 +148,6 @@ export const usePokemonBattle = (username: string) => {
     setPendingChallenge(null);
   };
   
-  // Get Pokémon type based on name (simplified)
   const getPokemonType = (name: string): string => {
     const typeMap: Record<string, string> = {
       bulbasaur: "grass", ivysaur: "grass", venusaur: "grass",
@@ -155,7 +160,6 @@ export const usePokemonBattle = (username: string) => {
     return typeMap[name.toLowerCase()] || "normal";
   };
   
-  // Select a Pokemon for battle
   const selectPokemon = (pokemon: Pokemon, broadcast: (text: string) => void) => {
     if (!activeBattle || !selectingPokemon) {
       broadcast("No active battle or not in selection phase.");
@@ -164,7 +168,6 @@ export const usePokemonBattle = (username: string) => {
     
     console.log("Selecting Pokémon for battle:", pokemon);
     
-    // Generate random moves for the Pokemon
     const moveTypes = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground"];
     const moveNames = [
       "Tackle", "Slam", "Quick Attack", "Bite", "Scratch", "Pound", "Headbutt",
@@ -187,10 +190,8 @@ export const usePokemonBattle = (username: string) => {
       generateMove()
     ];
     
-    // Calculate health based on level
     const health = pokemon.level * 20 + 50;
     
-    // Determine Pokémon type
     const type = getPokemonType(pokemon.name);
     
     const battlePokemon: BattlePokemon = {
@@ -219,12 +220,24 @@ export const usePokemonBattle = (username: string) => {
     update(battleRef, updates);
     
     broadcast(`You chose ${pokemon.name} for battle!`);
+    
+    const otherPlayerSelected = isChallenger 
+      ? activeBattle.opponentSelectedPokemon 
+      : activeBattle.challengerSelectedPokemon;
+      
+    if (otherPlayerSelected) {
+      update(battleRef, {
+        logs: [...activeBattle.logs, ...(updates.logs || []), "Both trainers have selected their Pokémon! The battle begins!"]
+      });
+      broadcast("Both trainers have selected their Pokémon! The battle begins!");
+    } else {
+      broadcast("Waiting for the other trainer to select their Pokémon...");
+    }
+    
     setSelectingPokemon(false);
   };
   
-  // Calculate type effectiveness
   const getTypeEffectiveness = (moveType: string, defenderType: string): number => {
-    // Super effective matchups (simplified)
     const typeChart: Record<string, { superEffective: string[], notVeryEffective: string[] }> = {
       fire: {
         superEffective: ["grass", "ice", "bug"],
@@ -270,7 +283,6 @@ export const usePokemonBattle = (username: string) => {
     return 1.0;
   };
   
-  // Execute a move
   const executeMove = (moveIndex: number, broadcast: (text: string) => void) => {
     if (!activeBattle || !activeBattle.isActive) {
       broadcast("No active battle found!");
@@ -298,7 +310,6 @@ export const usePokemonBattle = (username: string) => {
     
     const move = attackerPokemon.moves[moveIndex];
     
-    // Calculate if the move hits (based on accuracy)
     const hitRoll = Math.random() * 100;
     if (hitRoll > move.accuracy) {
       const battleRef = ref(db, `battles/${activeBattle.id}`);
@@ -312,17 +323,14 @@ export const usePokemonBattle = (username: string) => {
       return;
     }
     
-    // Calculate type effectiveness
     const effectiveness = getTypeEffectiveness(
       move.type, 
       defenderPokemon.type || "normal"
     );
     
-    // Check for critical hit (6.25% chance)
     const isCritical = Math.random() < 0.0625;
     const criticalMod = isCritical ? 1.5 : 1.0;
     
-    // Calculate damage
     const baseDamage = Math.floor((attackerPokemon.level * 0.4 + 2) * move.power / 50);
     const damage = Math.max(1, Math.floor(baseDamage * effectiveness * criticalMod));
     
@@ -383,7 +391,6 @@ export const usePokemonBattle = (username: string) => {
     broadcast(hitMessage);
     
     if (winner) {
-      // Award XP and level up the winner's Pokémon
       const playerRef = ref(db, `players/${username}`);
       const xpGained = 50 + (defenderPokemon.level * 5);
       
@@ -392,7 +399,6 @@ export const usePokemonBattle = (username: string) => {
           const playerData = snapshot.val();
           const updatedParty = [...(playerData.party || [])];
           
-          // Find the Pokémon in the party
           const pokemonIndex = updatedParty.findIndex(p => 
             p.name === attackerPokemon.name && 
             p.level === attackerPokemon.level
@@ -404,7 +410,6 @@ export const usePokemonBattle = (username: string) => {
             const newXp = currentXp + xpGained;
             const xpToLevelUp = pokemon.level * 100;
             
-            // Check if Pokémon should level up
             if (newXp >= xpToLevelUp) {
               updatedParty[pokemonIndex] = {
                 ...pokemon,
@@ -420,7 +425,6 @@ export const usePokemonBattle = (username: string) => {
               broadcast(`Your ${pokemon.name} gained ${xpGained} XP! (${newXp}/${xpToLevelUp})`);
             }
             
-            // Update the player's party
             update(playerRef, { party: updatedParty });
           }
         }
@@ -433,7 +437,6 @@ export const usePokemonBattle = (username: string) => {
     }
   };
   
-  // Get stats for a Pokémon in battle
   const getPokemonStats = (broadcast: (text: string, image?: string | null) => void) => {
     if (!activeBattle) {
       broadcast("No active battle found!");
@@ -467,7 +470,6 @@ export const usePokemonBattle = (username: string) => {
     broadcast(statsText, pokemon.image);
   };
   
-  // Forfeit battle
   const forfeitBattle = (broadcast: (text: string) => void) => {
     if (!activeBattle) {
       broadcast("No active battle found!");
@@ -489,7 +491,6 @@ export const usePokemonBattle = (username: string) => {
     }, 5000);
   };
   
-  // End the battle and clean up
   const endBattle = () => {
     if (!activeBattle || !activeBattle.id) return;
     
@@ -503,8 +504,6 @@ export const usePokemonBattle = (username: string) => {
   
   const initBattleListener = () => {
     console.log("Manual battle listener initialization");
-    // This is just a placeholder since the actual initialization happens in useEffect
-    // But we need to provide this function since it's being called in the Chat component
   };
 
   return {
