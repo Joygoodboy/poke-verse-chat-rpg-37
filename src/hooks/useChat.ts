@@ -1,7 +1,7 @@
 
 import { usePlayerData } from './usePlayerData';
 import { useChatMessages } from './useChatMessages';
-import { handleHelpCommand, handleLeaderboardCommand, handleCatchCommand } from '../utils/commandHandlers';
+import { handleHelpCommand, handleLeaderboardCommand, handleCatchCommand, handleSpawnCommand } from '../utils/commandHandlers';
 import { createCommandSystem } from '../utils/gameCommands';
 
 export const OWNER_LIST = ["joyhostingbsite.com@gmail.com", "good", "Ash", "admin@pokemon.com", "owner@pokemon.com"];
@@ -27,6 +27,9 @@ export const useChat = (username: string) => {
       return;
     } else if (command === 'catch') {
       handleCatchCommand(playerData, setPlayerData, broadcast, args[1]);
+      return;
+    } else if (command === 'spawn') {
+      handleSpawnCommand(playerData, setPlayerData, broadcast);
       return;
     }
     

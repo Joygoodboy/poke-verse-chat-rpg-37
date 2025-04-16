@@ -24,21 +24,49 @@ export const usePlayerData = (username: string) => {
 
   // Load saved data on mount
   useEffect(() => {
-    const savedData = localStorage.getItem("pokemonSave");
-    if (savedData) {
+    const loadPlayerData = async () => {
       try {
-        setPlayerData(JSON.parse(savedData));
-      } catch (e) {
-        console.error("Error loading saved data", e);
+        const playerRef = ref(db, `players/${username}`);
+        const snapshot = await get(playerRef);
+        
+        if (snapshot.exists()) {
+          const savedData = snapshot.val();
+          setPlayerData(savedData);
+        } else {
+          // If no data exists in Firebase, check localStorage as fallback
+          const localData = localStorage.getItem("pokemonSave");
+          if (localData) {
+            try {
+              setPlayerData(JSON.parse(localData));
+            } catch (e) {
+              console.error("Error loading saved data", e);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading player data from Firebase:", error);
+        // Try localStorage as fallback
+        const localData = localStorage.getItem("pokemonSave");
+        if (localData) {
+          try {
+            setPlayerData(JSON.parse(localData));
+          } catch (e) {
+            console.error("Error loading saved data", e);
+          }
+        }
       }
-    }
-  }, []);
+    };
+
+    loadPlayerData();
+  }, [username]);
 
   // Save player data when it changes
   useEffect(() => {
     localStorage.setItem("pokemonSave", JSON.stringify(playerData));
     const playerRef = ref(db, `players/${username}`);
-    set(playerRef, playerData);
+    set(playerRef, playerData).catch(err => {
+      console.error("Error saving player data to Firebase:", err);
+    });
   }, [playerData, username]);
 
   return { playerData, setPlayerData };

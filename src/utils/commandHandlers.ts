@@ -1,5 +1,5 @@
 
-import { PlayerData } from '@/types/gameTypes';
+import { PlayerData, Pokemon } from '@/types/gameTypes';
 import { ref, push, set, get } from 'firebase/database';
 import { db } from '../firebase';
 
@@ -35,6 +35,8 @@ export const handleCatchCommand = (
   broadcast: (text: string) => void,
   ballType?: string
 ) => {
+  console.log("Catch command called with lastSpawn:", playerData.lastSpawn);
+  
   if (!playerData.lastSpawn) {
     broadcast("No Pokémon to catch! Use /spawn first.");
     return;
@@ -69,21 +71,59 @@ export const handleCatchCommand = (
     
     if (success) {
       if (updated.party.length < 6) {
-        updated.party.push(updated.lastSpawn);
-        broadcast(`You caught ${updated.lastSpawn.name}! Added to your party.`);
+        updated.party.push(updated.lastSpawn as Pokemon);
+        broadcast(`You caught ${updated.lastSpawn?.name}! Added to your party.`);
       } else {
         if (!updated.pc) updated.pc = [];
-        updated.pc.push(updated.lastSpawn);
-        broadcast(`Party full! ${updated.lastSpawn.name} was sent to PC.`);
+        updated.pc.push(updated.lastSpawn as Pokemon);
+        broadcast(`Party full! ${updated.lastSpawn?.name} was sent to PC.`);
       }
       updated.lastSpawn = null;
     } else {
-      broadcast(`Oh no! ${updated.lastSpawn.name} broke free and ran away!`);
+      broadcast(`Oh no! ${updated.lastSpawn?.name} broke free and ran away!`);
       updated.lastSpawn = null;
     }
     
     return updated;
   });
+};
+
+export const handleSpawnCommand = async (
+  playerData: PlayerData,
+  setPlayerData: (data: PlayerData) => void,
+  broadcast: (text: string, image?: string | null) => void
+) => {
+  try {
+    const randomId = Math.floor(Math.random() * 151) + 1;
+    const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${randomId}`);
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch Pokemon: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    const pokemon: Pokemon = {
+      name: data.name,
+      image: data.sprites.other["official-artwork"].front_default,
+      level: Math.floor(Math.random() * 5) + 1,
+      xp: 0,
+      moves: data.moves.slice(0, 4).map((m: any) => m.move.name)
+    };
+    
+    setPlayerData(prev => ({
+      ...prev,
+      lastSpawn: pokemon
+    }));
+    
+    broadcast(`A wild ${pokemon.name} appeared!`, pokemon.image);
+    
+    console.log("Setting lastSpawn to:", pokemon);
+    
+  } catch (error) {
+    console.error("Error spawning Pokémon:", error);
+    broadcast("Error spawning Pokémon. Please try again.");
+  }
 };
 
 export const handleHelpCommand = (broadcast: (text: string) => void) => {
