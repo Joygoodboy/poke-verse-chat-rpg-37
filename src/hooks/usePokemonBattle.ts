@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { ref, push, onValue, set, remove, update } from 'firebase/database';
+import { ref, push, onValue, set, remove, update, get } from 'firebase/database';
 import { Pokemon } from '@/types/gameTypes';
 
 export interface PokemonMove {
@@ -15,6 +15,7 @@ export interface BattlePokemon extends Pokemon {
   health: number;
   maxHealth: number;
   moves: PokemonMove[];
+  type?: string;
 }
 
 export interface BattleState {
@@ -29,6 +30,14 @@ export interface BattleState {
   winner: string | null;
   challengerSelectedPokemon: boolean;
   opponentSelectedPokemon: boolean;
+  lastAttack?: {
+    attacker: string;
+    defender: string;
+    moveName: string;
+    damage: number;
+    isCritical: boolean;
+    effectiveness: number;
+  };
 }
 
 export const usePokemonBattle = (username: string) => {
@@ -133,6 +142,19 @@ export const usePokemonBattle = (username: string) => {
     setPendingChallenge(null);
   };
   
+  // Get Pokémon type based on name (simplified)
+  const getPokemonType = (name: string): string => {
+    const typeMap: Record<string, string> = {
+      bulbasaur: "grass", ivysaur: "grass", venusaur: "grass",
+      charmander: "fire", charmeleon: "fire", charizard: "fire",
+      squirtle: "water", wartortle: "water", blastoise: "water",
+      pikachu: "electric", raichu: "electric",
+      // ... more could be added
+    };
+    
+    return typeMap[name.toLowerCase()] || "normal";
+  };
+  
   // Select a Pokemon for battle
   const selectPokemon = (pokemon: Pokemon, broadcast: (text: string) => void) => {
     if (!activeBattle || !selectingPokemon) {
@@ -168,11 +190,15 @@ export const usePokemonBattle = (username: string) => {
     // Calculate health based on level
     const health = pokemon.level * 20 + 50;
     
+    // Determine Pokémon type
+    const type = getPokemonType(pokemon.name);
+    
     const battlePokemon: BattlePokemon = {
       ...pokemon,
       health,
       maxHealth: health,
-      moves
+      moves,
+      type
     };
     
     const battleRef = ref(db, `battles/${activeBattle.id}`);
@@ -194,6 +220,54 @@ export const usePokemonBattle = (username: string) => {
     
     broadcast(`You chose ${pokemon.name} for battle!`);
     setSelectingPokemon(false);
+  };
+  
+  // Calculate type effectiveness
+  const getTypeEffectiveness = (moveType: string, defenderType: string): number => {
+    // Super effective matchups (simplified)
+    const typeChart: Record<string, { superEffective: string[], notVeryEffective: string[] }> = {
+      fire: {
+        superEffective: ["grass", "ice", "bug"],
+        notVeryEffective: ["fire", "water", "rock"]
+      },
+      water: {
+        superEffective: ["fire", "ground", "rock"],
+        notVeryEffective: ["water", "grass"]
+      },
+      grass: {
+        superEffective: ["water", "ground", "rock"],
+        notVeryEffective: ["fire", "grass", "poison", "flying", "bug"]
+      },
+      electric: {
+        superEffective: ["water", "flying"],
+        notVeryEffective: ["electric", "grass"]
+      },
+      ice: {
+        superEffective: ["grass", "ground", "flying", "dragon"],
+        notVeryEffective: ["fire", "water", "ice"]
+      },
+      fighting: {
+        superEffective: ["normal", "ice", "rock"],
+        notVeryEffective: ["poison", "flying", "psychic", "bug"]
+      },
+      normal: {
+        superEffective: [],
+        notVeryEffective: ["rock"]
+      }
+    };
+    
+    const matchup = typeChart[moveType.toLowerCase()];
+    if (!matchup) return 1.0;
+    
+    if (matchup.superEffective.includes(defenderType.toLowerCase())) {
+      return 2.0;
+    }
+    
+    if (matchup.notVeryEffective.includes(defenderType.toLowerCase())) {
+      return 0.5;
+    }
+    
+    return 1.0;
   };
   
   // Execute a move
@@ -238,8 +312,20 @@ export const usePokemonBattle = (username: string) => {
       return;
     }
     
+    // Calculate type effectiveness
+    const effectiveness = getTypeEffectiveness(
+      move.type, 
+      defenderPokemon.type || "normal"
+    );
+    
+    // Check for critical hit (6.25% chance)
+    const isCritical = Math.random() < 0.0625;
+    const criticalMod = isCritical ? 1.5 : 1.0;
+    
     // Calculate damage
-    const damage = Math.floor((attackerPokemon.level * 0.4 + 2) * move.power / 50);
+    const baseDamage = Math.floor((attackerPokemon.level * 0.4 + 2) * move.power / 50);
+    const damage = Math.max(1, Math.floor(baseDamage * effectiveness * criticalMod));
+    
     const newHealth = Math.max(0, defenderPokemon.health - damage);
     
     const newDefenderPokemon = {
@@ -247,7 +333,21 @@ export const usePokemonBattle = (username: string) => {
       health: newHealth
     };
     
-    let logs = [...activeBattle.logs, `${attackerPokemon.name} used ${move.name} and dealt ${damage} damage to ${defenderPokemon.name}!`];
+    let logs = [...activeBattle.logs];
+    let hitMessage = `${attackerPokemon.name} used ${move.name} and dealt ${damage} damage to ${defenderPokemon.name}!`;
+    
+    if (effectiveness > 1) {
+      hitMessage += " It's super effective!";
+    } else if (effectiveness < 1) {
+      hitMessage += " It's not very effective...";
+    }
+    
+    if (isCritical) {
+      hitMessage += " Critical hit!";
+    }
+    
+    logs.push(hitMessage);
+    
     let winner = null;
     
     if (newHealth <= 0) {
@@ -255,11 +355,21 @@ export const usePokemonBattle = (username: string) => {
       winner = username;
     }
     
+    const lastAttack = {
+      attacker: attackerPokemon.name,
+      defender: defenderPokemon.name,
+      moveName: move.name,
+      damage,
+      isCritical,
+      effectiveness
+    };
+    
     const battleRef = ref(db, `battles/${activeBattle.id}`);
     const updates: any = {
       logs,
       turn: winner ? '' : defender,
-      winner
+      winner,
+      lastAttack
     };
     
     if (username === activeBattle.challenger) {
@@ -270,14 +380,91 @@ export const usePokemonBattle = (username: string) => {
     
     update(battleRef, updates);
     
-    broadcast(`Your ${attackerPokemon.name} used ${move.name} and dealt ${damage} damage to ${defenderPokemon.name}!`);
+    broadcast(hitMessage);
     
     if (winner) {
+      // Award XP and level up the winner's Pokémon
+      const playerRef = ref(db, `players/${username}`);
+      const xpGained = 50 + (defenderPokemon.level * 5);
+      
+      get(playerRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          const playerData = snapshot.val();
+          const updatedParty = [...(playerData.party || [])];
+          
+          // Find the Pokémon in the party
+          const pokemonIndex = updatedParty.findIndex(p => 
+            p.name === attackerPokemon.name && 
+            p.level === attackerPokemon.level
+          );
+          
+          if (pokemonIndex >= 0) {
+            const pokemon = updatedParty[pokemonIndex];
+            const currentXp = pokemon.xp || 0;
+            const newXp = currentXp + xpGained;
+            const xpToLevelUp = pokemon.level * 100;
+            
+            // Check if Pokémon should level up
+            if (newXp >= xpToLevelUp) {
+              updatedParty[pokemonIndex] = {
+                ...pokemon,
+                level: pokemon.level + 1,
+                xp: newXp - xpToLevelUp
+              };
+              broadcast(`Your ${pokemon.name} leveled up to level ${pokemon.level + 1}!`);
+            } else {
+              updatedParty[pokemonIndex] = {
+                ...pokemon,
+                xp: newXp
+              };
+              broadcast(`Your ${pokemon.name} gained ${xpGained} XP! (${newXp}/${xpToLevelUp})`);
+            }
+            
+            // Update the player's party
+            update(playerRef, { party: updatedParty });
+          }
+        }
+      });
+      
       broadcast(`You won the battle against ${defender}!`);
       setTimeout(() => {
         endBattle();
       }, 5000);
     }
+  };
+  
+  // Get stats for a Pokémon in battle
+  const getPokemonStats = (broadcast: (text: string, image?: string | null) => void) => {
+    if (!activeBattle) {
+      broadcast("No active battle found!");
+      return;
+    }
+    
+    const isChallenger = username === activeBattle.challenger;
+    const pokemon = isChallenger ? activeBattle.challengerPokemon : activeBattle.opponentPokemon;
+    
+    if (!pokemon) {
+      broadcast("You haven't selected a Pokémon for battle yet!");
+      return;
+    }
+    
+    let statsText = `
+📊 **Battle Stats for ${pokemon.name}** (Level ${pokemon.level}) 📊
+
+❤️ HP: ${pokemon.health}/${pokemon.maxHealth}
+⚔️ Type: ${pokemon.type || "Normal"}
+✨ XP: ${pokemon.xp || 0}/${pokemon.level * 100}
+
+🏹 Moves:
+`;
+    
+    pokemon.moves.forEach((move, index) => {
+      statsText += `${index + 1}. ${move.name} (${move.power} Power, ${move.accuracy}% Accuracy, ${move.type} Type)\n`;
+    });
+    
+    statsText += `\nUse "/battle [move number]" to use a move. For example, "/battle 1" to use ${pokemon.moves[0]?.name || "first move"}.`;
+    
+    broadcast(statsText, pokemon.image);
   };
   
   // Forfeit battle
@@ -329,6 +516,7 @@ export const usePokemonBattle = (username: string) => {
     acceptChallenge,
     selectPokemon,
     executeMove,
+    getPokemonStats,
     forfeitBattle,
     endBattle
   };

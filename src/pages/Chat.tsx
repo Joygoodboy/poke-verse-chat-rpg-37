@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -31,6 +30,7 @@ import {
   PlusCircle
 } from "lucide-react";
 import { CommandButtons } from "@/components/chat/CommandButtons";
+import { generateBattleImage, generatePokedexEntry } from '@/utils/battleImageGenerator';
 
 const Chat = () => {
   const navigate = useNavigate();
@@ -62,11 +62,10 @@ const Chat = () => {
     acceptChallenge,
     selectPokemon,
     executeMove,
+    getPokemonStats,
     forfeitBattle
   } = usePokemonBattle(username);
   
-  // We don't need this useEffect anymore since the battle listener 
-  // is initialized within the usePokemonBattle hook's own useEffect
   useEffect(() => {
     console.log("Battle functionality initialized");
   }, []);
@@ -77,7 +76,15 @@ const Chat = () => {
   const handleSendCommand = async (message: string) => {
     if (!message.trim()) return;
     
-    // Handle select pokemon command
+    if (message.startsWith('/pokemonstats') || message.startsWith('/pstats')) {
+      if (activeBattle) {
+        getPokemonStats(broadcast);
+      } else {
+        broadcast("This command can only be used during a battle.");
+      }
+      return;
+    }
+    
     if (message.startsWith('/select') || message.startsWith('/selectpokemon')) {
       const args = message.split(' ');
       if (args.length < 2) {
@@ -369,6 +376,7 @@ const Chat = () => {
                 username={username}
                 onMoveSelect={(moveIndex) => executeMove(moveIndex, broadcast)}
                 onForfeit={() => forfeitBattle(broadcast)}
+                onPokemonStats={() => getPokemonStats(broadcast)}
               />
             )}
           </div>

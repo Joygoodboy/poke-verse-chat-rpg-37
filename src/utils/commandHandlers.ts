@@ -168,6 +168,7 @@ export const handleHelpCommand = (broadcast: (text: string) => void) => {
 /challenge accept or /ch accept - Accept a challenge
 /select [number] - Select a Pokémon from your party for battle by its index
 /battle [move-number] - Use a move in battle (e.g., /battle 1 for first move)
+/pokemonstats or /pstats - View your Pokémon's battle stats and moves
 /forfeit - Give up the battle
 
 **👑 Admin:**

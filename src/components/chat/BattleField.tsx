@@ -1,25 +1,29 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { BattleState, BattlePokemon } from '@/hooks/usePokemonBattle';
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Swords, ArrowRight } from "lucide-react";
+import { Swords, ArrowRight, Shield, Zap, Info } from "lucide-react";
+import { generateBattleImage, generatePokedexEntry } from '@/utils/battleImageGenerator';
 
 interface BattleFieldProps {
   battle: BattleState;
   username: string;
   onMoveSelect: (moveIndex: number) => void;
   onForfeit: () => void;
+  onPokemonStats: () => void;
 }
 
 export const BattleField: React.FC<BattleFieldProps> = ({
   battle,
   username,
   onMoveSelect,
-  onForfeit
+  onForfeit,
+  onPokemonStats
 }) => {
-  const { challenger, opponent, challengerPokemon, opponentPokemon, turn, logs, winner } = battle;
+  const { challenger, opponent, challengerPokemon, opponentPokemon, turn, logs, winner, lastAttack } = battle;
+  const [showPokedex, setShowPokedex] = useState(false);
   
   const isChallenger = username === challenger;
   const userPokemon = isChallenger ? challengerPokemon : opponentPokemon;
@@ -44,6 +48,9 @@ export const BattleField: React.FC<BattleFieldProps> = ({
     return "bg-red-500";
   };
   
+  // Generate battle scene HTML
+  const battleSceneHtml = generateBattleImage(battle, lastAttack);
+  
   return (
     <div className="bg-gradient-to-b from-indigo-900 to-blue-900 rounded-lg p-4 mb-4 text-white shadow-lg relative overflow-hidden">
       {/* Background effects */}
@@ -55,121 +62,92 @@ export const BattleField: React.FC<BattleFieldProps> = ({
           <h3 className="text-xl font-bold flex items-center">
             <Swords className="mr-2" /> Pokémon Battle
           </h3>
-          {winner ? (
-            <div className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
-              {winner === username ? "You Won!" : "You Lost!"}
-            </div>
-          ) : (
-            <div className="px-3 py-1 bg-purple-700 text-white font-bold rounded">
-              {isUserTurn ? "Your Turn" : "Opponent's Turn"}
-            </div>
-          )}
-        </div>
-        
-        {/* Battle field */}
-        <div className="flex justify-between items-center mb-6">
-          {/* Enemy Pokemon */}
-          <div className="w-1/3 text-center">
-            <div className="mb-2">
-              <span className="capitalize font-bold">{enemyPokemon.name}</span>
-              <span className="text-xs ml-2">Lv.{enemyPokemon.level}</span>
-            </div>
+          
+          <div className="flex space-x-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-white border-white hover:bg-white/20"
+              onClick={onPokemonStats}
+            >
+              <Info className="mr-1 h-4 w-4" /> Stats
+            </Button>
             
-            <div className="relative mb-2">
-              <div className="h-2 bg-gray-700 rounded-full">
-                <div 
-                  className={`h-2 ${getHealthColor(enemyHealthPercent)} rounded-full`} 
-                  style={{width: `${enemyHealthPercent}%`}}
-                ></div>
-              </div>
-              <div className="text-xs mt-1">
-                {enemyPokemon.health} / {enemyPokemon.maxHealth} HP
-              </div>
-            </div>
-            
-            {enemyPokemon.image ? (
-              <div className="flex justify-center">
-                <img 
-                  src={enemyPokemon.image} 
-                  alt={enemyPokemon.name} 
-                  className={`w-24 h-24 object-contain ${!isUserTurn ? 'animate-pulse' : ''}`} 
-                />
+            {winner ? (
+              <div className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
+                {winner === username ? "You Won!" : "You Lost!"}
               </div>
             ) : (
-              <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto"></div>
-            )}
-          </div>
-          
-          {/* Battle indicator */}
-          <div className="w-1/3 relative">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
-                <ArrowRight className={`text-white ${isUserTurn ? 'rotate-180' : ''} transition-transform duration-300`} size={24} />
+              <div className="px-3 py-1 bg-purple-700 text-white font-bold rounded">
+                {isUserTurn ? "Your Turn" : "Opponent's Turn"}
               </div>
-            </div>
-          </div>
-          
-          {/* User Pokemon */}
-          <div className="w-1/3 text-center">
-            <div className="mb-2">
-              <span className="capitalize font-bold">{userPokemon.name}</span>
-              <span className="text-xs ml-2">Lv.{userPokemon.level}</span>
-            </div>
-            
-            <div className="relative mb-2">
-              <div className="h-2 bg-gray-700 rounded-full">
-                <div 
-                  className={`h-2 ${getHealthColor(userHealthPercent)} rounded-full`} 
-                  style={{width: `${userHealthPercent}%`}}
-                ></div>
-              </div>
-              <div className="text-xs mt-1">
-                {userPokemon.health} / {userPokemon.maxHealth} HP
-              </div>
-            </div>
-            
-            {userPokemon.image ? (
-              <div className="flex justify-center">
-                <img 
-                  src={userPokemon.image} 
-                  alt={userPokemon.name} 
-                  className={`w-24 h-24 object-contain ${isUserTurn ? 'animate-pulse' : ''}`} 
-                />
-              </div>
-            ) : (
-              <div className="w-24 h-24 bg-gray-800 rounded-full mx-auto"></div>
             )}
           </div>
         </div>
         
-        {/* Battle controls */}
-        {!winner && (
-          <div className="mb-4">
-            <h4 className="text-sm font-bold mb-2">{isUserTurn ? "Choose a move:" : "Waiting for opponent..."}</h4>
-            
-            <div className="grid grid-cols-2 gap-2">
-              {isUserTurn && userPokemon.moves.map((move, index) => (
+        {/* Battle field visualization */}
+        <div className="mb-6" dangerouslySetInnerHTML={{ __html: battleSceneHtml }}></div>
+        
+        {/* Toggle between battle controls and Pokédex */}
+        <div className="flex justify-center mb-4">
+          <Button 
+            variant={showPokedex ? "outline" : "default"}
+            className="mr-2"
+            onClick={() => setShowPokedex(false)}
+          >
+            <Swords className="mr-1 h-4 w-4" /> Battle
+          </Button>
+          <Button 
+            variant={!showPokedex ? "outline" : "default"}
+            onClick={() => setShowPokedex(true)}
+          >
+            <Shield className="mr-1 h-4 w-4" /> Pokédex
+          </Button>
+        </div>
+        
+        {showPokedex ? (
+          /* Pokédex view */
+          <div className="mb-4" dangerouslySetInnerHTML={{ __html: generatePokedexEntry(userPokemon) }}></div>
+        ) : (
+          /* Battle controls */
+          !winner && (
+            <div className="mb-4">
+              <h4 className="text-sm font-bold mb-2">{isUserTurn ? "Choose a move:" : "Waiting for opponent..."}</h4>
+              
+              <div className="grid grid-cols-2 gap-2">
+                {isUserTurn && userPokemon.moves.map((move, index) => (
+                  <Button 
+                    key={index}
+                    onClick={() => onMoveSelect(index)}
+                    className={`text-sm py-1 ${
+                      move.type === "Fire" ? "bg-red-600 hover:bg-red-700" :
+                      move.type === "Water" ? "bg-blue-600 hover:bg-blue-700" :
+                      move.type === "Grass" ? "bg-green-600 hover:bg-green-700" :
+                      move.type === "Electric" ? "bg-yellow-600 hover:bg-yellow-700" :
+                      "bg-indigo-600 hover:bg-indigo-700"
+                    } text-white flex items-center justify-between`}
+                    disabled={!isUserTurn}
+                  >
+                    <span className="capitalize">{move.name}</span>
+                    <div className="flex items-center">
+                      <Zap className="h-3 w-3 mr-1" />
+                      <span>{move.power}</span>
+                    </div>
+                  </Button>
+                ))}
+              </div>
+              
+              <div className="mt-2 text-center">
                 <Button 
-                  key={index}
-                  onClick={() => onMoveSelect(index)}
-                  className="text-sm py-1 bg-indigo-600 hover:bg-indigo-700 text-white"
-                  disabled={!isUserTurn}
+                  onClick={onForfeit}
+                  variant="destructive"
+                  className="text-xs"
                 >
-                  {move.name} ({move.power} Power)
+                  Forfeit Battle
                 </Button>
-              ))}
+              </div>
             </div>
-            
-            <div className="mt-2 text-center">
-              <Button 
-                onClick={onForfeit}
-                variant="destructive"
-                className="text-xs"
-              >
-                Forfeit Battle
-              </Button>
-            </div>
-          </div>
+          )
         )}
         
         {/* Battle logs */}
