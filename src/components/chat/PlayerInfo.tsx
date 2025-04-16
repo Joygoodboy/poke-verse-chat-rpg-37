@@ -2,19 +2,12 @@
 import React from 'react';
 import { Card } from "@/components/ui/card";
 import { User, Wallet, Package, Gamepad } from "lucide-react";
-
-export interface Pokemon {
-  name: string;
-  image?: string;
-  level: number;
-  xp?: number;
-  type?: string;
-}
+import { Pokemon } from "@/types/gameTypes";
 
 interface PlayerData {
   wallet: number;
   bank: number;
-  inventory: {
+  inventory: { 
     pokeball: number;
     greatball: number;
     ultraball: number;
@@ -82,13 +75,13 @@ export const PlayerInfo: React.FC<PlayerInfoProps> = ({ username, playerData }) 
           <Gamepad className="mr-2" size={18} /> Party
         </h2>
         
-        {playerData.party.length === 0 ? (
+        {playerData.party && playerData.party.length === 0 ? (
           <div className="text-center italic text-gray-500 py-4">
             No Pokémon yet
           </div>
         ) : (
           <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-            {playerData.party.map((pokemon, index) => (
+            {playerData.party && playerData.party.map((pokemon, index) => (
               <div key={index} className="flex items-center bg-white/50 rounded-lg p-2 shadow-sm">
                 {pokemon.image ? (
                   <img src={pokemon.image} alt={pokemon.name} className="w-12 h-12 mr-3 object-contain" />
