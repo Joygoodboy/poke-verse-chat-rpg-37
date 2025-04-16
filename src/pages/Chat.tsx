@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -26,7 +25,9 @@ import {
   Gift,
   PackageIcon,
   ShoppingCart,
-  Calculator
+  Calculator,
+  Zap,
+  PlusCircle
 } from "lucide-react";
 import { CommandButtons } from "@/components/chat/CommandButtons";
 
@@ -73,7 +74,6 @@ const Chat = () => {
   const handleSendCommand = async (message: string) => {
     if (!message.trim()) return;
     
-    // Handle battle-related commands
     if (message.startsWith('/pokemonchallenge') || message.startsWith('/pch')) {
       const args = message.split(' ');
       if (args.length < 2) {
@@ -120,7 +120,6 @@ const Chat = () => {
       return;
     }
 
-    // Special commands that should be handled directly
     if (message.startsWith('/help')) {
       handleCommand('/help');
       return;
@@ -141,9 +140,12 @@ const Chat = () => {
       return;
     }
 
-    // Special handling for /spawn command to ensure it always works
+    if (message.startsWith('/catch')) {
+      handleCommand(message);
+      return;
+    }
+
     if (message.startsWith('/spawn')) {
-      // Call the command directly from the command system
       if (commandSystemRef && commandSystemRef['spawn']) {
         const userData = { 
           isOwner: userIsOwner,
@@ -153,7 +155,6 @@ const Chat = () => {
         const response = commandSystemRef['spawn']([], userData);
         broadcast(response);
       } else {
-        // Fallback method for spawn
         fetch(`https://pokeapi.co/api/v2/pokemon/${Math.floor(Math.random() * 151) + 1}`)
           .then(response => response.json())
           .then(data => {
@@ -181,10 +182,8 @@ const Chat = () => {
       return;
     }
     
-    // Broadcast the message to chat
     broadcast(message);
     
-    // Process standard commands
     if (message.startsWith('/')) {
       const args = message.split(" ");
       const base = args[0].toLowerCase();
@@ -219,7 +218,6 @@ const Chat = () => {
     });
   };
 
-  // Group commands by category for the command buttons
   const economyCommands = [
     { name: "wallet", icon: <Wallet size={18} /> },
     { name: "slot", icon: <DollarSign size={18} /> },
@@ -230,9 +228,10 @@ const Chat = () => {
 
   const pokemonCommands = [
     { name: "spawn", icon: <Gamepad2 size={18} /> },
+    { name: "catch", icon: <PlusCircle size={18} /> },
     { name: "party", icon: <Users size={18} /> },
     { name: "pc", icon: <Gamepad2 size={18} /> },
-    { name: "rb", icon: <ZapIcon size={18} /> }
+    { name: "rb", icon: <Zap size={18} /> }
   ];
 
   const adminCommands = userIsAdmin ? [
@@ -258,7 +257,6 @@ const Chat = () => {
           isOwner={userIsOwner}
         />
         
-        {/* Command Buttons */}
         <div 
           ref={commandsContainerRef}
           className="p-2 bg-blue-600/40 backdrop-blur-sm flex flex-wrap gap-2 overflow-x-auto"
@@ -280,11 +278,11 @@ const Chat = () => {
           />
           
           <CommandButtons 
-            title="Party" 
+            title="Catch" 
             commands={[]}
-            onCommandClick={handleCommandButtonClick}
-            className="bg-yellow-600 hover:bg-yellow-700 text-white"
-            icon={<Users size={18} />}
+            onCommandClick={() => handleCommandButtonClick("catch")}
+            className="bg-red-600 hover:bg-red-700 text-white"
+            icon={<PlusCircle size={18} />}
           />
           
           <CommandButtons 
@@ -346,7 +344,6 @@ const Chat = () => {
           )}
         </div>
         
-        {/* Battle UI */}
         {activeBattle && (
           <div className="p-2">
             {selectingPokemon ? (

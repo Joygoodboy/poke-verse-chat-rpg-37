@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { ref, onChildAdded, push, set, get, child } from 'firebase/database';
@@ -288,6 +287,69 @@ export const useChat = (username: string) => {
     }
   };
 
+  // Handle the catch command
+  const handleCatchCommand = (ballType?: string) => {
+    if (!playerData.lastSpawn) {
+      broadcast("No Pokémon to catch! Use /spawn first.");
+      return;
+    }
+    
+    // Default to pokeball if no type specified
+    const ball = ballType?.toLowerCase() || 'pokeball';
+    
+    // Check valid ball types
+    const validBalls = ['pokeball', 'greatball', 'ultraball', 'masterball'];
+    if (!validBalls.includes(ball)) {
+      broadcast(`Invalid ball type. Use: ${validBalls.join(', ')}`);
+      return;
+    }
+    
+    // Check if player has the ball
+    if (!playerData.inventory[ball as keyof typeof playerData.inventory] || 
+        playerData.inventory[ball as keyof typeof playerData.inventory] <= 0) {
+      broadcast(`You don't have any ${ball}s! Buy some from the shop with /shop and /buy.`);
+      return;
+    }
+    
+    // Calculate catch chance based on ball type
+    const catchRates: Record<string, number> = {
+      pokeball: 0.5,
+      greatball: 0.7,
+      ultraball: 0.9,
+      masterball: 1.0
+    };
+    
+    // Success determined by random chance (based on ball type)
+    const success = Math.random() < catchRates[ball];
+    
+    // Update inventory - remove one ball regardless of success
+    setPlayerData(prev => {
+      const updated = { ...prev };
+      updated.inventory[ball as keyof typeof updated.inventory] -= 1;
+      
+      if (success) {
+        // If successful, add to party or PC
+        if (updated.party.length < 6) {
+          updated.party.push(updated.lastSpawn);
+          broadcast(`You caught ${updated.lastSpawn.name}! Added to your party.`);
+        } else {
+          // Party is full, send to PC
+          if (!updated.pc) updated.pc = [];
+          updated.pc.push(updated.lastSpawn);
+          broadcast(`Party full! ${updated.lastSpawn.name} was sent to PC.`);
+        }
+        // Clear the spawned Pokémon
+        updated.lastSpawn = null;
+      } else {
+        broadcast(`Oh no! ${updated.lastSpawn.name} broke free and ran away!`);
+        // Clear the spawned Pokémon on failure too
+        updated.lastSpawn = null;
+      }
+      
+      return updated;
+    });
+  };
+
   const handleCommand = (text: string) => {
     const args = text.split(" ");
     const command = args[0].toLowerCase().replace('/', '');
@@ -301,6 +363,9 @@ export const useChat = (username: string) => {
       return;
     } else if (command === 'rob') {
       handleRobCommand(args[1]);
+      return;
+    } else if (command === 'catch') {
+      handleCatchCommand(args[1]);
       return;
     }
     
