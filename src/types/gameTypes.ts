@@ -11,6 +11,12 @@ export interface Pokemon {
   level: number;
   xp: number;
   moves: string[];
+  type?: string;
+  attack?: number;
+  defense?: number;
+  speed?: number;
+  hp?: number;
+  maxHp?: number;
 }
 
 export interface PlayerData {

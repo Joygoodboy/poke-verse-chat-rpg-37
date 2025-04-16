@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Pokemon } from '@/components/chat/PlayerInfo';
+import { Pokemon } from '@/types/gameTypes';
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -13,11 +13,11 @@ export const PokemonSelector: React.FC<PokemonSelectorProps> = ({
   party,
   onSelect
 }) => {
-  if (party.length === 0) {
+  if (!party || party.length === 0) {
     return (
       <div className="p-4 text-center">
         <p className="text-red-500">You don't have any Pokémon in your party!</p>
-        <p className="text-sm mt-2">Use /catch to catch Pokémon after spawning them with /spawn</p>
+        <p className="text-sm mt-2">Use /spawn to spawn a Pokémon and then /catch to catch it</p>
       </div>
     );
   }
@@ -25,6 +25,7 @@ export const PokemonSelector: React.FC<PokemonSelectorProps> = ({
   return (
     <Card className="p-4 bg-gradient-to-r from-blue-800 to-indigo-900 text-white">
       <h3 className="text-lg font-bold mb-3">Select a Pokémon for battle</h3>
+      <p className="text-sm mb-3">Click on a Pokémon to select it for battle, or use the command "/select [number]" (e.g., /select 0 for the first Pokémon)</p>
       <div className="grid grid-cols-2 gap-3">
         {party.map((pokemon, index) => (
           <div 
@@ -40,6 +41,7 @@ export const PokemonSelector: React.FC<PokemonSelectorProps> = ({
             <div>
               <div className="font-medium capitalize">{pokemon.name}</div>
               <div className="text-xs text-blue-200">Level {pokemon.level}</div>
+              <div className="text-xs text-gray-300">Index: {index}</div>
               <Button 
                 className="mt-2 text-xs py-0 px-2 h-6 bg-indigo-500 hover:bg-indigo-600"
                 onClick={(e) => {

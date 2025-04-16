@@ -27,10 +27,24 @@ export const useChat = (username: string) => {
       return;
     } else if (command === 'catch') {
       const ballType = args.length > 1 ? args[1] : undefined;
-      handleCatchCommand(playerData, setPlayerData, broadcast, ballType);
+      if (playerData.lastSpawn) {
+        console.log("Catch command called with lastSpawn:", playerData.lastSpawn);
+        handleCatchCommand(playerData, setPlayerData, broadcast, ballType);
+      } else {
+        console.log("No Pokemon to catch, current playerData:", playerData);
+        broadcast("No Pokémon to catch! Use /spawn first.");
+      }
       return;
     } else if (command === 'spawn') {
       handleSpawnCommand(playerData, setPlayerData, broadcast);
+      return;
+    } else if (command === 'selectpokemon' || command === 'select') {
+      const pokemonIndex = parseInt(args[1]);
+      if (isNaN(pokemonIndex) || pokemonIndex < 0 || pokemonIndex >= (playerData.party?.length || 0)) {
+        broadcast("Invalid Pokémon selection. Use /select [number] with a valid party Pokémon index.");
+        return;
+      }
+      broadcast(`You selected ${playerData.party[pokemonIndex].name} for battle!`);
       return;
     }
     

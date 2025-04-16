@@ -1,8 +1,8 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { db } from '../firebase';
-import { ref, push, onValue, set, remove } from 'firebase/database';
-import { Pokemon } from '@/components/chat/PlayerInfo';
+import { ref, push, onValue, set, remove, update } from 'firebase/database';
+import { Pokemon } from '@/types/gameTypes';
 
 export interface PokemonMove {
   name: string;
@@ -18,6 +18,7 @@ export interface BattlePokemon extends Pokemon {
 }
 
 export interface BattleState {
+  id?: string;
   challenger: string;
   opponent: string;
   challengerPokemon: BattlePokemon | null;
@@ -26,6 +27,8 @@ export interface BattleState {
   turn: string;
   logs: string[];
   winner: string | null;
+  challengerSelectedPokemon: boolean;
+  opponentSelectedPokemon: boolean;
 }
 
 export const usePokemonBattle = (username: string) => {
@@ -34,10 +37,13 @@ export const usePokemonBattle = (username: string) => {
   const [selectingPokemon, setSelectingPokemon] = useState(false);
   
   // Initialize battle listener
-  const initBattleListener = () => {
+  useEffect(() => {
+    if (!username) return;
+    
+    console.log("Initializing battle listener for:", username);
     const battleRef = ref(db, "battles");
     
-    onValue(battleRef, (snapshot) => {
+    const unsubscribe = onValue(battleRef, (snapshot) => {
       if (snapshot.exists()) {
         const battles = snapshot.val();
         
@@ -46,17 +52,19 @@ export const usePokemonBattle = (username: string) => {
           const battle = battles[battleId] as BattleState;
           
           if (battle.challenger === username || battle.opponent === username) {
+            console.log("Found active battle:", battle);
             setActiveBattle({
               ...battle,
               id: battleId
-            } as BattleState);
+            });
             
-            if (battle.challenger === username || battle.opponent === username) {
-              if (!battle.challengerPokemon || !battle.opponentPokemon) {
-                setSelectingPokemon(true);
-              } else {
-                setSelectingPokemon(false);
-              }
+            // Check if user needs to select a Pokémon
+            if (battle.challenger === username && !battle.challengerSelectedPokemon) {
+              setSelectingPokemon(true);
+            } else if (battle.opponent === username && !battle.opponentSelectedPokemon) {
+              setSelectingPokemon(true);
+            } else {
+              setSelectingPokemon(false);
             }
             
             return;
@@ -68,7 +76,11 @@ export const usePokemonBattle = (username: string) => {
       setActiveBattle(null);
       setSelectingPokemon(false);
     });
-  };
+
+    return () => {
+      unsubscribe();
+    };
+  }, [username]);
   
   // Challenge another player
   const challengePlayer = (opponentName: string, broadcast: (text: string) => void) => {
@@ -83,6 +95,8 @@ export const usePokemonBattle = (username: string) => {
       opponent: opponentName,
       challengerPokemon: null,
       opponentPokemon: null,
+      challengerSelectedPokemon: false,
+      opponentSelectedPokemon: false,
       isActive: false,
       turn: username,
       logs: [`${username} has challenged ${opponentName} to a Pokémon battle!`],
@@ -96,26 +110,37 @@ export const usePokemonBattle = (username: string) => {
   
   // Accept a challenge
   const acceptChallenge = (broadcast: (text: string) => void) => {
-    if (activeBattle && activeBattle.opponent === username && !activeBattle.isActive) {
-      const battleRef = ref(db, `battles/${activeBattle.id}`);
-      
-      set(battleRef, {
-        ...activeBattle,
-        isActive: true,
-        logs: [...activeBattle.logs, `${username} accepted the challenge!`]
-      });
-      
-      broadcast("You accepted the challenge! Select a Pokémon to battle with!");
-      setSelectingPokemon(true);
-      setPendingChallenge(null);
-    } else {
+    if (!activeBattle) {
       broadcast("No pending challenge found.");
+      return;
     }
+    
+    if (activeBattle.opponent !== username || activeBattle.isActive) {
+      broadcast("No valid challenge to accept.");
+      return;
+    }
+    
+    const battleRef = ref(db, `battles/${activeBattle.id}`);
+    
+    set(battleRef, {
+      ...activeBattle,
+      isActive: true,
+      logs: [...activeBattle.logs, `${username} accepted the challenge!`]
+    });
+    
+    broadcast("You accepted the challenge! Select a Pokémon to battle with by using the selector below or by typing /select [number]");
+    setSelectingPokemon(true);
+    setPendingChallenge(null);
   };
   
   // Select a Pokemon for battle
   const selectPokemon = (pokemon: Pokemon, broadcast: (text: string) => void) => {
-    if (!activeBattle || !selectingPokemon) return;
+    if (!activeBattle || !selectingPokemon) {
+      broadcast("No active battle or not in selection phase.");
+      return;
+    }
+    
+    console.log("Selecting Pokémon for battle:", pokemon);
     
     // Generate random moves for the Pokemon
     const moveTypes = ["Normal", "Fire", "Water", "Electric", "Grass", "Ice", "Fighting", "Poison", "Ground"];
@@ -151,20 +176,21 @@ export const usePokemonBattle = (username: string) => {
     };
     
     const battleRef = ref(db, `battles/${activeBattle.id}`);
+    const isChallenger = username === activeBattle.challenger;
     
-    if (username === activeBattle.challenger) {
-      set(battleRef, {
-        ...activeBattle,
-        challengerPokemon: battlePokemon,
-        logs: [...activeBattle.logs, `${username} chose ${pokemon.name}!`]
-      });
-    } else {
-      set(battleRef, {
-        ...activeBattle,
-        opponentPokemon: battlePokemon,
-        logs: [...activeBattle.logs, `${username} chose ${pokemon.name}!`]
-      });
-    }
+    const updates: Partial<BattleState> = isChallenger 
+      ? { 
+          challengerPokemon: battlePokemon, 
+          challengerSelectedPokemon: true,
+          logs: [...activeBattle.logs, `${username} chose ${pokemon.name}!`]
+        }
+      : {
+          opponentPokemon: battlePokemon,
+          opponentSelectedPokemon: true,
+          logs: [...activeBattle.logs, `${username} chose ${pokemon.name}!`]
+        };
+    
+    update(battleRef, updates);
     
     broadcast(`You chose ${pokemon.name} for battle!`);
     setSelectingPokemon(false);
@@ -172,8 +198,13 @@ export const usePokemonBattle = (username: string) => {
   
   // Execute a move
   const executeMove = (moveIndex: number, broadcast: (text: string) => void) => {
-    if (!activeBattle || !activeBattle.isActive || !activeBattle.challengerPokemon || !activeBattle.opponentPokemon) {
+    if (!activeBattle || !activeBattle.isActive) {
       broadcast("No active battle found!");
+      return;
+    }
+    
+    if (!activeBattle.challengerPokemon || !activeBattle.opponentPokemon) {
+      broadcast("Both players must select their Pokémon first!");
       return;
     }
     
@@ -198,8 +229,7 @@ export const usePokemonBattle = (username: string) => {
     if (hitRoll > move.accuracy) {
       const battleRef = ref(db, `battles/${activeBattle.id}`);
       
-      set(battleRef, {
-        ...activeBattle,
+      update(battleRef, {
         turn: defender,
         logs: [...activeBattle.logs, `${attackerPokemon.name}'s ${move.name} missed!`]
       });
@@ -226,24 +256,19 @@ export const usePokemonBattle = (username: string) => {
     }
     
     const battleRef = ref(db, `battles/${activeBattle.id}`);
+    const updates: any = {
+      logs,
+      turn: winner ? '' : defender,
+      winner
+    };
     
     if (username === activeBattle.challenger) {
-      set(battleRef, {
-        ...activeBattle,
-        opponentPokemon: newDefenderPokemon,
-        turn: winner ? '' : defender,
-        logs,
-        winner
-      });
+      updates.opponentPokemon = newDefenderPokemon;
     } else {
-      set(battleRef, {
-        ...activeBattle,
-        challengerPokemon: newDefenderPokemon,
-        turn: winner ? '' : defender,
-        logs,
-        winner
-      });
+      updates.challengerPokemon = newDefenderPokemon;
     }
+    
+    update(battleRef, updates);
     
     broadcast(`Your ${attackerPokemon.name} used ${move.name} and dealt ${damage} damage to ${defenderPokemon.name}!`);
     
@@ -265,8 +290,7 @@ export const usePokemonBattle = (username: string) => {
     const winner = username === activeBattle.challenger ? activeBattle.opponent : activeBattle.challenger;
     const battleRef = ref(db, `battles/${activeBattle.id}`);
     
-    set(battleRef, {
-      ...activeBattle,
+    update(battleRef, {
       logs: [...activeBattle.logs, `${username} forfeited the battle! ${winner} wins!`],
       winner
     });
@@ -280,10 +304,10 @@ export const usePokemonBattle = (username: string) => {
   
   // End the battle and clean up
   const endBattle = () => {
-    if (activeBattle) {
-      const battleRef = ref(db, `battles/${activeBattle.id}`);
-      remove(battleRef);
-    }
+    if (!activeBattle || !activeBattle.id) return;
+    
+    const battleRef = ref(db, `battles/${activeBattle.id}`);
+    remove(battleRef);
     
     setActiveBattle(null);
     setPendingChallenge(null);
@@ -294,7 +318,6 @@ export const usePokemonBattle = (username: string) => {
     activeBattle,
     pendingChallenge,
     selectingPokemon,
-    initBattleListener,
     challengePlayer,
     acceptChallenge,
     selectPokemon,
