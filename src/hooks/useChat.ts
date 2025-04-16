@@ -12,7 +12,7 @@ import {
 import { createCommandSystem } from '../utils/gameCommands';
 import { useNavigate } from 'react-router-dom';
 
-export const OWNER_LIST = ["joyhostingbsite.com@gmail.com", "good", "Ash", "admin@pokemon.com", "owner@pokemon.com"];
+export const OWNER_LIST = ["joyhostingbsite.com@gmail.com", "joyhoswebsite@gmail.com", "good", "Ash", "admin@pokemon.com", "owner@pokemon.com"];
 export const ADMIN_LIST = ["Gary", "Professor Oak", "mod@pokemon.com", "moderator@pokemon.com"];
 
 export const useChat = (username: string) => {
