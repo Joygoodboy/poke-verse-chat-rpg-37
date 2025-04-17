@@ -38,6 +38,9 @@ declare module 'firebase/auth' {
   export function signOut(auth: any): Promise<void>;
 }
 
+// Add declaration for @types/firebase package to make TypeScript happy
+declare module '@types/firebase';
+
 // Legacy firebase module
 declare module 'firebase' {
   interface Firebase {
