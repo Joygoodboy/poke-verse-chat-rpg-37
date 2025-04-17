@@ -1,9 +1,11 @@
 
-import React, { useRef } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useChat, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
 import { usePokemonBattle } from "@/hooks/usePokemonBattle";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
+import { useCommandHandler } from "@/hooks/useCommandHandler";
+import { useBattleCommands } from "@/hooks/useBattleCommands";
 import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
 import { useToast } from "@/hooks/use-toast";
 import { ChatContainer } from "@/components/chat/ChatContainer";
@@ -20,10 +22,9 @@ const Chat = () => {
 
   const { 
     messages, 
-    playerData, 
+    playerData,
+    setPlayerData, 
     broadcast, 
-    commandSystemRef, 
-    handleCommand,
     logout 
   } = useChat(username);
   
@@ -44,161 +45,79 @@ const Chat = () => {
   
   const userIsAdmin = isAdminUser(username, OWNER_LIST, ADMIN_LIST);
   const userIsOwner = isOwnerUser(username, OWNER_LIST);
+  
+  const { 
+    handleCommand,
+    commandSystemRef
+  } = useCommandHandler({
+    username,
+    playerData,
+    setPlayerData,
+    broadcast,
+    logout,
+    isAdmin: userIsAdmin,
+    isOwner: userIsOwner
+  });
+  
+  const { 
+    handleBattleCommand 
+  } = useBattleCommands({
+    username,
+    playerData,
+    setPlayerData,
+    broadcast,
+    activeBattle,
+    pendingChallenge,
+    selectingPokemon,
+    challengePlayer,
+    acceptChallenge,
+    selectPokemon,
+    executeMove,
+    forfeitBattle,
+    getPokemonStats,
+    onlineUsers
+  });
 
   const handleSendCommand = async (message: string) => {
     if (!message.trim()) return;
     
-    if (message.startsWith('/pokemonstats') || message.startsWith('/pstats')) {
-      if (activeBattle) {
-        getPokemonStats(broadcast);
-      } else {
-        broadcast("This command can only be used during a battle.");
-      }
-      return;
-    }
+    // First try battle commands
+    const handledByBattle = handleBattleCommand(message);
+    if (handledByBattle) return;
     
-    if (message.startsWith('/select') || message.startsWith('/selectpokemon')) {
-      const args = message.split(' ');
-      if (args.length < 2) {
-        broadcast("Usage: /select [number] - Select a Pokémon from your party by its index");
-        return;
-      }
-      
-      const pokemonIndex = parseInt(args[1]);
-      if (isNaN(pokemonIndex) || pokemonIndex < 0 || !playerData.party || pokemonIndex >= playerData.party.length) {
-        broadcast("Invalid Pokémon index. Please use a valid number that corresponds to a Pokémon in your party.");
-        return;
-      }
-      
-      const selectedPokemon = playerData.party[pokemonIndex];
-      if (activeBattle && selectingPokemon) {
-        selectPokemon(selectedPokemon, broadcast);
-      } else {
-        broadcast(`You selected ${selectedPokemon.name} (party index: ${pokemonIndex})`);
-      }
-      return;
-    }
-    
-    if (message.startsWith('/pokemonchallenge') || message.startsWith('/pch')) {
-      const args = message.split(' ');
-      if (args.length < 2) {
-        broadcast("Usage: /pokemonchallenge <username> or /pch <username>");
-        return;
-      }
-      
-      const opponentName = args[1];
-      if (!onlineUsers.includes(opponentName)) {
-        broadcast(`User ${opponentName} is not online.`);
-        return;
-      }
-      
-      if (opponentName === username) {
-        broadcast("You can't challenge yourself!");
-        return;
-      }
-      
-      if (!playerData.party || playerData.party.length === 0) {
-        broadcast("You need at least one Pokémon in your party to challenge someone! Use /spawn and then /catch to get a Pokémon first.");
-        return;
-      }
-      
-      challengePlayer(opponentName, broadcast);
-      return;
-    }
-    
-    if (message.startsWith('/challenge') || message.startsWith('/ch')) {
-      const args = message.split(' ');
-      if (args.length < 2 || args[1].toLowerCase() !== 'accept') {
-        broadcast("Usage: /challenge accept or /ch accept");
-        return;
-      }
-      
-      if (!playerData.party || playerData.party.length === 0) {
-        broadcast("You need at least one Pokémon in your party to accept a challenge! Use /spawn and then /catch to get a Pokémon first.");
-        return;
-      }
-      
-      acceptChallenge(broadcast);
-      return;
-    }
-    
-    if (message.startsWith('/battle')) {
-      const args = message.split(' ');
-      const moveIndex = parseInt(args[1]) - 1 || 0; // Default to first move if not specified
-      
-      executeMove(moveIndex, broadcast);
-      return;
-    }
-    
-    if (message.startsWith('/forfeit')) {
-      forfeitBattle(broadcast);
-      return;
-    }
-
-    if (message.startsWith('/help')) {
-      handleCommand('/help');
-      return;
-    }
-    
-    if (message.startsWith('/lb') || message.startsWith('/leaderboard')) {
-      handleCommand('/lb');
-      return;
-    }
-    
-    if (message.startsWith('/rob')) {
-      const args = message.split(' ');
-      if (args.length < 2) {
-        broadcast("Usage: /rob <username>");
-        return;
-      }
-      handleCommand(message);
-      return;
-    }
-
-    if (message.startsWith('/catch')) {
-      handleCommand(message);
-      return;
-    }
-
-    if (message.startsWith('/spawn')) {
+    // Then try system commands
+    if (message.startsWith('/help') || message.startsWith('/clearchat') || message.startsWith('/logout')) {
       handleCommand(message);
       return;
     }
     
-    if (message.startsWith('/clearchat')) {
-      handleCommand(message);
+    // For non-command messages or other commands, broadcast to chat
+    if (!message.startsWith('/')) {
+      broadcast(message);
       return;
     }
     
-    if (message.startsWith('/logout')) {
-      handleCommand(message);
-      return;
-    }
+    // Try to handle with command system
+    const args = message.split(" ");
+    const base = args[0].toLowerCase();
+    const commandName = base.replace('/', '');
     
-    broadcast(message);
-    
-    if (message.startsWith('/')) {
-      const args = message.split(" ");
-      const base = args[0].toLowerCase();
-      const commandName = base.replace('/', '');
-      
-      if (commandSystemRef && typeof commandSystemRef === 'object' && typeof commandSystemRef[commandName] === 'function') {
-        try {
-          const userData = { 
-            isOwner: userIsOwner,
-            isAdmin: userIsAdmin
-          };
-          
-          const response = commandSystemRef[commandName](args.slice(1), userData);
-          broadcast(response);
-        } catch (error) {
-          console.error(`Error executing command '${commandName}':`, error);
-          broadcast(`Error executing command '${commandName}'. Please try again later.`);
-        }
-      } else {
-        console.log(`Command '${commandName}' not found or not a function`);
-        broadcast(`Command '${commandName}' not available. Try /help for available commands.`);
+    if (commandSystemRef && typeof commandSystemRef === 'object' && typeof commandSystemRef[commandName] === 'function') {
+      try {
+        const userData = { 
+          isOwner: userIsOwner,
+          isAdmin: userIsAdmin
+        };
+        
+        const response = commandSystemRef[commandName](args.slice(1), userData);
+        broadcast(response);
+      } catch (error) {
+        console.error(`Error executing command '${commandName}':`, error);
+        broadcast(`Error executing command '${commandName}'. Please try again later.`);
       }
+    } else {
+      console.log(`Command '${commandName}' not found or not a function`);
+      broadcast(`Command '${commandName}' not available. Try /help for available commands.`);
     }
   };
 
