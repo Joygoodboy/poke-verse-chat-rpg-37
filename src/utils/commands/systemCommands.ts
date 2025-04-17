@@ -1,5 +1,5 @@
 
-import { ref, remove } from 'firebase/database';
+import { ref, remove, get, set } from 'firebase/database';
 import { db } from '../../firebase';
 
 export const handleHelpCommand = (broadcast: (text: string) => void) => {
@@ -75,4 +75,122 @@ export const handleLogoutCommand = (
   setTimeout(() => {
     logout();
   }, 1000);
+};
+
+// New admin commands
+
+export const handleGiveCoinsCommand = async (
+  username: string,
+  targetUser: string,
+  amount: number,
+  isAdmin: boolean,
+  broadcast: (text: string) => void
+) => {
+  if (!isAdmin) {
+    broadcast("You don't have permission to use this command. Admin only.");
+    return;
+  }
+
+  if (!targetUser || isNaN(amount) || amount <= 0) {
+    broadcast("Usage: /givecoins [username] [amount]");
+    return;
+  }
+
+  try {
+    // Check if target user exists
+    const userRef = ref(db, `players/${targetUser}`);
+    const snapshot = await get(userRef);
+    
+    if (!snapshot.exists()) {
+      broadcast(`User ${targetUser} not found.`);
+      return;
+    }
+    
+    const userData = snapshot.val();
+    const currentWallet = userData.wallet || 0;
+    
+    // Update wallet
+    await set(ref(db, `players/${targetUser}/wallet`), currentWallet + amount);
+    
+    broadcast(`🎁 Admin ${username} has given ${amount} coins to ${targetUser}!`);
+  } catch (error) {
+    console.error("Error giving coins:", error);
+    broadcast("Failed to give coins. Please try again later.");
+  }
+};
+
+export const handleGivePokemonCommand = async (
+  username: string,
+  targetUser: string,
+  pokemonName: string,
+  level: number,
+  isAdmin: boolean,
+  broadcast: (text: string) => void
+) => {
+  if (!isAdmin) {
+    broadcast("You don't have permission to use this command. Admin only.");
+    return;
+  }
+
+  if (!targetUser || !pokemonName || isNaN(level) || level <= 0) {
+    broadcast("Usage: /givepokemon [username] [pokemon_name] [level]");
+    return;
+  }
+
+  try {
+    // Check if target user exists
+    const userRef = ref(db, `players/${targetUser}`);
+    const snapshot = await get(userRef);
+    
+    if (!snapshot.exists()) {
+      broadcast(`User ${targetUser} not found.`);
+      return;
+    }
+    
+    const userData = snapshot.val();
+    const party = userData.party || [];
+    
+    // Create new pokemon
+    const newPokemon = {
+      name: pokemonName,
+      level: level,
+      xp: 0,
+      health: level * 20,
+      maxHealth: level * 20,
+      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 898) + 1}.png`
+    };
+    
+    // Add to party
+    party.push(newPokemon);
+    await set(ref(db, `players/${targetUser}/party`), party);
+    
+    broadcast(`🎁 Admin ${username} has given a level ${level} ${pokemonName} to ${targetUser}!`);
+  } catch (error) {
+    console.error("Error giving pokemon:", error);
+    broadcast("Failed to give Pokemon. Please try again later.");
+  }
+};
+
+export const handleAnnouncementCommand = async (
+  username: string,
+  message: string,
+  isAdmin: boolean,
+  broadcast: (text: string) => void
+) => {
+  if (!isAdmin) {
+    broadcast("You don't have permission to use this command. Admin only.");
+    return;
+  }
+
+  if (!message) {
+    broadcast("Usage: /announce [message]");
+    return;
+  }
+
+  try {
+    broadcast(`📢 **ADMIN ANNOUNCEMENT** 📢\n${message}\n— ${username}`);
+  } catch (error) {
+    console.error("Error making announcement:", error);
+    broadcast("Failed to make announcement. Please try again later.");
+  }
 };

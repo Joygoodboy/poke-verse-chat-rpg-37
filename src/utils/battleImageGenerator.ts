@@ -1,235 +1,369 @@
 
-// Utility to generate battle field images based on battle state
-import { BattleState, BattlePokemon } from '@/hooks/usePokemonBattle';
+// Let's update the battle image generator to include animations and effects
 
-// Base battlefield image
-const BATTLEFIELD_BG = "public/lovable-uploads/a2a90023-ac44-46b6-a6d4-58cbb175e6f0.png";
-const POKEDEX_BG = "public/lovable-uploads/783aeec4-e001-4598-884f-38da174c23c1.png";
-
-// Generate HTML for a battle scene
-export const generateBattleImage = (
-  battle: BattleState,
-  attackDetails?: {
-    attacker: string;
-    defender: string;
-    moveName: string;
-    damage: number;
-    isCritical: boolean;
-    effectiveness: number;
-  }
-): string => {
-  if (!battle.challengerPokemon || !battle.opponentPokemon) {
-    return `<div class="text-center text-gray-500">Waiting for Pokémon selection...</div>`;
-  }
-
-  const leftPokemon = battle.challengerPokemon;
-  const rightPokemon = battle.opponentPokemon;
+export const generateBattleImage = (battle: any, lastAttack: any = null) => {
+  const { challengerPokemon, opponentPokemon, winner } = battle;
   
-  // Calculate health percentages
-  const leftHealthPercent = Math.max(0, (leftPokemon.health / leftPokemon.maxHealth) * 100);
-  const rightHealthPercent = Math.max(0, (rightPokemon.health / rightPokemon.maxHealth) * 100);
+  if (!challengerPokemon || !opponentPokemon) {
+    return '<div class="text-center">Loading battle...</div>';
+  }
   
-  // Get health bar colors
+  const challengerHealthPercent = (challengerPokemon.health / challengerPokemon.maxHealth) * 100;
+  const opponentHealthPercent = (opponentPokemon.health / opponentPokemon.maxHealth) * 100;
+  
   const getHealthColor = (percent: number) => {
     if (percent > 50) return "bg-green-500";
     if (percent > 20) return "bg-yellow-500";
     return "bg-red-500";
   };
   
-  // Attack effect
-  let attackEffect = '';
-  if (attackDetails) {
-    const effectivenessText = attackDetails.effectiveness > 1 
-      ? "It's super effective!" 
-      : attackDetails.effectiveness < 1 
-        ? "It's not very effective..." 
-        : "";
-        
-    const criticalText = attackDetails.isCritical ? "Critical hit!" : "";
+  const challengerHealthColor = getHealthColor(challengerHealthPercent);
+  const opponentHealthColor = getHealthColor(opponentHealthPercent);
+  
+  // Generate attack effects
+  let effectsHtml = '';
+  if (lastAttack) {
+    const { attacker, defender, moveName, damage, isCritical, effectiveness } = lastAttack;
     
-    attackEffect = `
-      <div class="absolute inset-0 flex items-center justify-center z-20">
-        <div class="bg-black/75 text-white p-4 rounded-lg text-center max-w-xs animate-fade-in">
-          <p class="text-xl font-bold">${attackDetails.attacker} used ${attackDetails.moveName}!</p>
-          ${effectivenessText ? `<p class="text-yellow-300">${effectivenessText}</p>` : ''}
-          ${criticalText ? `<p class="text-red-400">${criticalText}</p>` : ''}
-          <p class="text-2xl font-bold mt-2">${attackDetails.damage} damage!</p>
+    // Determine effect class based on attack properties
+    let effectClass = '';
+    if (moveName.toLowerCase().includes('fire') || moveName.toLowerCase().includes('burn')) {
+      effectClass = 'fire-effect';
+    } else if (moveName.toLowerCase().includes('water') || moveName.toLowerCase().includes('bubble')) {
+      effectClass = 'water-effect';
+    } else if (moveName.toLowerCase().includes('thunder') || moveName.toLowerCase().includes('electric')) {
+      effectClass = 'electric-effect';
+    } else if (damage > 30 || isCritical) {
+      effectClass = 'critical-effect';
+    } else {
+      effectClass = 'normal-effect';
+    }
+    
+    effectsHtml = `
+      <div class="${effectClass} absolute inset-0 pointer-events-none flex items-center justify-center z-10">
+        <div class="text-4xl font-bold attack-text">${moveName}!</div>
+        ${isCritical ? '<div class="critical-hit">CRITICAL HIT!</div>' : ''}
+        ${effectiveness > 1 ? '<div class="super-effective">SUPER EFFECTIVE!</div>' : ''}
+        ${effectiveness < 1 ? '<div class="not-effective">NOT VERY EFFECTIVE...</div>' : ''}
+      </div>
+    `;
+  }
+  
+  // Generate the winner effects
+  let winnerEffectsHtml = '';
+  if (winner) {
+    const winnerPokemon = winner === battle.challenger ? challengerPokemon : opponentPokemon;
+    winnerEffectsHtml = `
+      <div class="victory-effect absolute inset-0 flex items-center justify-center z-20">
+        <div class="text-4xl font-bold text-yellow-400 animate-bounce victory-text">
+          ${winnerPokemon.name} WINS!
         </div>
       </div>
     `;
   }
-
+  
+  // Generate CSS for the animations
+  const animationStyles = `
+    <style>
+      /* Battle scene base */
+      .battle-scene {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(to bottom, #4a83b2, #7abeed);
+        border-radius: 12px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+      }
+      
+      /* Pokemon animations */
+      .pokemon-sprite {
+        transition: all 0.3s ease;
+      }
+      
+      .pokemon-sprite.attack {
+        animation: attack-animation 0.5s ease;
+      }
+      
+      .challenger-pokemon {
+        animation: float 3s ease-in-out infinite;
+      }
+      
+      .opponent-pokemon {
+        animation: float 3s ease-in-out infinite;
+        animation-delay: 1.5s;
+      }
+      
+      @keyframes float {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-10px); }
+      }
+      
+      @keyframes attack-animation {
+        0% { transform: translateX(0); }
+        25% { transform: translateX(20px) rotate(5deg); }
+        50% { transform: translateX(-5px); }
+        75% { transform: translateX(5px); }
+        100% { transform: translateX(0); }
+      }
+      
+      /* Attack effects */
+      .fire-effect {
+        background: radial-gradient(circle, rgba(255,100,0,0.4) 0%, rgba(255,0,0,0) 70%);
+        animation: pulse 1s ease-in-out;
+      }
+      
+      .water-effect {
+        background: radial-gradient(circle, rgba(0,100,255,0.4) 0%, rgba(0,0,255,0) 70%);
+        animation: pulse 1s ease-in-out;
+      }
+      
+      .electric-effect {
+        background: radial-gradient(circle, rgba(255,255,0,0.4) 0%, rgba(255,255,0,0) 70%);
+        animation: zap 0.8s ease-in-out;
+      }
+      
+      .critical-effect {
+        background: radial-gradient(circle, rgba(255,0,0,0.3) 0%, rgba(255,0,0,0) 70%);
+        animation: shake 0.5s ease-in-out;
+      }
+      
+      .normal-effect {
+        animation: flash 0.5s ease-in-out;
+      }
+      
+      .attack-text {
+        color: white;
+        text-shadow: 2px 2px 5px rgba(0,0,0,0.7);
+        animation: zoom-in 0.3s ease-out forwards;
+        opacity: 0;
+        transform: scale(0.5);
+      }
+      
+      .critical-hit {
+        color: #ff3333;
+        font-weight: bold;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        position: absolute;
+        bottom: 30%;
+        animation: slide-up 0.5s ease-out forwards;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      
+      .super-effective, .not-effective {
+        color: white;
+        font-weight: bold;
+        position: absolute;
+        bottom: 20%;
+        text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        animation: slide-up 0.5s ease-out 0.3s forwards;
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      
+      .super-effective {
+        color: #33ff33;
+      }
+      
+      .not-effective {
+        color: #aaaaaa;
+      }
+      
+      /* Victory effects */
+      .victory-effect {
+        background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0) 70%);
+        animation: victory-pulse 2s ease-in-out infinite;
+      }
+      
+      .victory-text {
+        text-shadow: 2px 2px 10px #ff9900, -2px -2px 10px #ff9900;
+        animation: victory-bounce 1s ease infinite;
+      }
+      
+      /* Animation keyframes */
+      @keyframes pulse {
+        0% { opacity: 0; }
+        50% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+      
+      @keyframes zap {
+        0%, 100% { opacity: 0; }
+        10%, 30%, 50%, 70%, 90% { opacity: 0.8; }
+        20%, 40%, 60%, 80% { opacity: 0.2; }
+      }
+      
+      @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        20%, 60% { transform: translateX(-10px); }
+        40%, 80% { transform: translateX(10px); }
+      }
+      
+      @keyframes flash {
+        0%, 100% { opacity: 0; }
+        50% { opacity: 0.5; }
+      }
+      
+      @keyframes zoom-in {
+        0% { opacity: 0; transform: scale(0.5); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      
+      @keyframes slide-up {
+        0% { opacity: 0; transform: translateY(20px); }
+        100% { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes victory-pulse {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.6; }
+      }
+      
+      @keyframes victory-bounce {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+      
+      /* Health bars */
+      .health-bar {
+        height: 10px;
+        border-radius: 5px;
+        transition: width 0.5s ease;
+      }
+      
+      .health-text {
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+      }
+      
+      /* Background elements */
+      .battle-ground {
+        background: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/grass-memory.png') repeat-x bottom;
+        height: 20px;
+        opacity: 0.7;
+      }
+      
+      .battle-sky {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 100%;
+        background: linear-gradient(to bottom, #7abeed 0%, #4a83b2 100%);
+        z-index: -1;
+      }
+      
+      .battle-clouds {
+        position: absolute;
+        top: 20%;
+        left: 0;
+        right: 0;
+        height: 40px;
+        background: url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/air-balloon.png') repeat-x;
+        background-size: contain;
+        opacity: 0.3;
+        animation: clouds-move 30s linear infinite;
+      }
+      
+      @keyframes clouds-move {
+        0% { background-position: 0 0; }
+        100% { background-position: 100% 0; }
+      }
+    </style>
+  `;
+  
+  // HTML for the battle scene
   return `
-    <div class="relative w-full h-64 overflow-hidden rounded-lg border-4 border-gray-800 shadow-xl">
-      <!-- Battle background -->
-      <img src="${BATTLEFIELD_BG}" alt="Battlefield" class="absolute inset-0 w-full h-full object-cover" />
+    ${animationStyles}
+    <div class="battle-scene w-full h-64 relative p-4">
+      <!-- Sky background with clouds -->
+      <div class="battle-sky"></div>
+      <div class="battle-clouds"></div>
       
-      <!-- Left Pokemon (Challenger) -->
-      <div class="absolute bottom-4 left-8 z-10">
-        <div class="mb-2 bg-gray-900/80 text-white p-1 rounded text-center text-sm">
-          <div class="font-bold capitalize">${leftPokemon.name} Lv.${leftPokemon.level}</div>
-          <div class="w-full h-2 bg-gray-700 rounded-full mt-1">
-            <div class="${getHealthColor(leftHealthPercent)} h-2 rounded-full" style="width: ${leftHealthPercent}%"></div>
+      <!-- Opponent's Pokemon -->
+      <div class="flex flex-col items-center absolute right-8 top-4">
+        <div class="mb-2 text-center">
+          <div class="text-white text-sm font-bold mb-1">${opponentPokemon.name} Lv.${opponentPokemon.level}</div>
+          <div class="w-32 bg-gray-700 rounded-full">
+            <div class="health-bar ${opponentHealthColor}" style="width: ${opponentHealthPercent}%"></div>
           </div>
-          <div class="text-xs mt-1">${leftPokemon.health}/${leftPokemon.maxHealth} HP</div>
+          <div class="health-text text-white">${opponentPokemon.health}/${opponentPokemon.maxHealth}</div>
         </div>
-        ${leftPokemon.image ? 
-          `<img src="${leftPokemon.image}" alt="${leftPokemon.name}" class="w-24 h-24 object-contain ${battle.turn === battle.challenger ? 'animate-pulse' : ''}" />` :
-          `<div class="w-24 h-24 bg-gray-500 rounded-full flex items-center justify-center">
-            <span class="text-lg font-bold uppercase">${leftPokemon.name.charAt(0)}</span>
-          </div>`
-        }
+        <img 
+          src="${opponentPokemon.image}" 
+          alt="${opponentPokemon.name}" 
+          class="w-24 h-24 opponent-pokemon pokemon-sprite ${lastAttack && lastAttack.defender === opponentPokemon.name ? 'hurt-animation' : ''}"
+        />
       </div>
       
-      <!-- Right Pokemon (Opponent) -->
-      <div class="absolute bottom-4 right-8 z-10">
-        <div class="mb-2 bg-gray-900/80 text-white p-1 rounded text-center text-sm">
-          <div class="font-bold capitalize">${rightPokemon.name} Lv.${rightPokemon.level}</div>
-          <div class="w-full h-2 bg-gray-700 rounded-full mt-1">
-            <div class="${getHealthColor(rightHealthPercent)} h-2 rounded-full" style="width: ${rightHealthPercent}%"></div>
+      <!-- Challenger's Pokemon -->
+      <div class="flex flex-col items-center absolute left-8 bottom-8">
+        <img 
+          src="${challengerPokemon.image}" 
+          alt="${challengerPokemon.name}" 
+          class="w-24 h-24 challenger-pokemon pokemon-sprite ${lastAttack && lastAttack.defender === challengerPokemon.name ? 'hurt-animation' : ''}"
+        />
+        <div class="mt-2 text-center">
+          <div class="text-white text-sm font-bold mb-1">${challengerPokemon.name} Lv.${challengerPokemon.level}</div>
+          <div class="w-32 bg-gray-700 rounded-full">
+            <div class="health-bar ${challengerHealthColor}" style="width: ${challengerHealthPercent}%"></div>
           </div>
-          <div class="text-xs mt-1">${rightPokemon.health}/${rightPokemon.maxHealth} HP</div>
+          <div class="health-text text-white">${challengerPokemon.health}/${challengerPokemon.maxHealth}</div>
         </div>
-        ${rightPokemon.image ? 
-          `<img src="${rightPokemon.image}" alt="${rightPokemon.name}" class="w-24 h-24 object-contain ${battle.turn === battle.opponent ? 'animate-pulse' : ''}" />` :
-          `<div class="w-24 h-24 bg-gray-500 rounded-full flex items-center justify-center">
-            <span class="text-lg font-bold uppercase">${rightPokemon.name.charAt(0)}</span>
-          </div>`
-        }
       </div>
       
-      <!-- Battle text -->
-      <div class="absolute bottom-0 inset-x-0 bg-white/90 p-2 text-center text-sm">
-        ${battle.logs[battle.logs.length-1] || "The battle is about to begin!"}
-      </div>
+      <!-- Battle ground -->
+      <div class="battle-ground absolute bottom-0 left-0 right-0"></div>
       
-      ${attackEffect}
+      <!-- Effects animation layer -->
+      ${effectsHtml}
+      
+      <!-- Winner effects -->
+      ${winnerEffectsHtml}
     </div>
   `;
 };
 
-// Generate HTML for Pokédex entry
-export const generatePokedexEntry = (pokemon: BattlePokemon): string => {
+export const generatePokedexEntry = (pokemon: any) => {
   if (!pokemon) {
-    return `<div class="text-center text-gray-500">No Pokémon selected</div>`;
+    return '<div class="text-center">No Pokémon selected</div>';
   }
-
-  // Get type color
-  const getTypeColor = (type: string) => {
-    const typeColors: Record<string, string> = {
-      normal: "bg-gray-400",
-      fire: "bg-red-500",
-      water: "bg-blue-500",
-      grass: "bg-green-500",
-      electric: "bg-yellow-400",
-      ice: "bg-blue-200",
-      fighting: "bg-red-700",
-      poison: "bg-purple-500",
-      ground: "bg-yellow-700",
-      flying: "bg-indigo-300",
-      psychic: "bg-pink-500",
-      bug: "bg-green-600",
-      rock: "bg-yellow-800",
-      ghost: "bg-purple-700",
-      dragon: "bg-indigo-600",
-      steel: "bg-gray-500",
-      fairy: "bg-pink-300"
-    };
-    
-    return typeColors[type.toLowerCase()] || "bg-gray-400";
-  };
-
-  // Base stats calculation
-  const baseHP = pokemon.maxHealth;
-  const baseAtk = 10 + (pokemon.level * 2);
-  const baseDef = 10 + (pokemon.level * 1.5);
-  const baseSpd = 10 + (pokemon.level * 1.8);
   
-  // Get move power display
-  const getMoveDisplay = (move: { name: string, power: number, type: string, accuracy: number }) => {
-    return `
-      <div class="flex justify-between items-center border-b border-gray-200 py-1">
-        <span class="capitalize">${move.name}</span>
-        <div class="flex items-center space-x-2">
-          <span class="text-xs ${getTypeColor(move.type)} text-white px-2 py-0.5 rounded">${move.type}</span>
-          <span class="text-xs bg-gray-200 px-2 py-0.5 rounded">Power: ${move.power}</span>
-          <span class="text-xs bg-gray-200 px-2 py-0.5 rounded">Acc: ${move.accuracy}%</span>
-        </div>
-      </div>
-    `;
-  };
-
   return `
-    <div class="relative w-full max-w-lg mx-auto overflow-hidden rounded-lg border-4 border-yellow-500 bg-red-100 shadow-xl pb-4">
-      <!-- Pokédex header -->
-      <div class="relative overflow-hidden">
-        <img src="${POKEDEX_BG}" alt="Pokédex" class="w-full object-contain" />
-        <div class="absolute top-4 right-4 bg-red-600 text-white text-xs px-2 py-1 rounded-full">
-          #${Math.floor(Math.random() * 151) + 1}
+    <div class="bg-slate-800 rounded-lg p-4 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-32 h-32 bg-slate-700 rounded-full -mt-16 -mr-16 opacity-20"></div>
+      
+      <div class="flex flex-col sm:flex-row gap-4 items-center mb-4">
+        <div class="w-32 h-32 bg-slate-700 rounded-full flex items-center justify-center p-2 border-4 border-slate-600">
+          <img src="${pokemon.image}" alt="${pokemon.name}" class="w-20 h-20 object-contain animate-pulse" />
+        </div>
+        
+        <div class="flex-1">
+          <h3 class="text-xl font-bold text-white">${pokemon.name}</h3>
+          <p class="text-slate-300">Level ${pokemon.level}</p>
+          <p class="text-slate-300">Type: ${pokemon.type || 'Normal'}</p>
+          <div class="w-full bg-slate-700 h-2 rounded-full mt-2">
+            <div class="bg-blue-500 h-2 rounded-full" style="width: ${(pokemon.xp || 0) / (pokemon.level * 100) * 100}%"></div>
+          </div>
+          <p class="text-xs text-slate-400">XP: ${pokemon.xp || 0}/${pokemon.level * 100}</p>
         </div>
       </div>
       
-      <!-- Pokémon info -->
-      <div class="p-4 bg-white rounded-t-xl -mt-8 relative z-10 mx-4 shadow-md">
-        <div class="flex items-center">
-          ${pokemon.image ? 
-            `<img src="${pokemon.image}" alt="${pokemon.name}" class="w-20 h-20 object-contain mr-4" />` :
-            `<div class="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mr-4">
-              <span class="text-2xl font-bold uppercase">${pokemon.name.charAt(0)}</span>
-            </div>`
-          }
-          <div>
-            <h2 class="text-2xl font-bold capitalize">${pokemon.name}</h2>
-            <div class="flex space-x-2 mt-1">
-              <span class="text-xs ${getTypeColor(pokemon.type || 'normal')} text-white px-2 py-0.5 rounded uppercase">${pokemon.type || 'Normal'}</span>
-              <span class="text-xs bg-gray-200 px-2 py-0.5 rounded">Level ${pokemon.level}</span>
-            </div>
-          </div>
-        </div>
-        
-        <!-- Stats -->
-        <div class="mt-4 grid grid-cols-2 gap-4">
-          <div>
-            <h3 class="font-bold text-sm text-gray-700 mb-2">Stats</h3>
-            <div class="space-y-1 text-sm">
-              <div class="flex justify-between">
-                <span>HP:</span>
-                <span>${pokemon.health}/${pokemon.maxHealth}</span>
+      <div class="space-y-2">
+        <h4 class="text-white font-bold">Battle Moves:</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          ${pokemon.moves ? pokemon.moves.map((move: any, index: number) => `
+            <div class="bg-slate-700 p-2 rounded flex justify-between items-center">
+              <div>
+                <span class="text-white font-medium">${move.name}</span>
+                <span class="text-xs text-slate-400 block">Type: ${move.type}</span>
               </div>
-              <div class="flex justify-between">
-                <span>Attack:</span>
-                <span>${baseAtk}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Defense:</span>
-                <span>${baseDef}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>Speed:</span>
-                <span>${baseSpd}</span>
-              </div>
-              <div class="flex justify-between">
-                <span>XP:</span>
-                <span>${pokemon.xp || 0}/${pokemon.level * 100}</span>
+              <div class="flex flex-col items-end">
+                <span class="text-yellow-400">${move.power} PWR</span>
+                <span class="text-xs text-slate-400">${move.accuracy}% ACC</span>
               </div>
             </div>
-          </div>
-          
-          <div>
-            <h3 class="font-bold text-sm text-gray-700 mb-2">Experience</h3>
-            <div class="w-full h-2 bg-gray-200 rounded-full">
-              <div class="bg-blue-500 h-2 rounded-full" style="width: ${((pokemon.xp || 0) / (pokemon.level * 100)) * 100}%"></div>
-            </div>
-            <p class="text-xs text-gray-600 mt-2">Next level: ${pokemon.level * 100 - (pokemon.xp || 0)} XP needed</p>
-          </div>
-        </div>
-        
-        <!-- Moves -->
-        <div class="mt-4">
-          <h3 class="font-bold text-sm text-gray-700 mb-2">Moves</h3>
-          <div class="space-y-1 text-sm">
-            ${pokemon.moves.map(move => getMoveDisplay(move)).join('')}
-          </div>
+          `).join('') : 'No moves available'}
         </div>
       </div>
     </div>

@@ -1,12 +1,10 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useChat, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
+import { useChat, isAdminUser, isOwnerUser, OWNER_LIST, ADMIN_LIST } from "@/hooks/useChat";
 import { usePokemonBattle } from "@/hooks/usePokemonBattle";
 import { useOnlineUsers } from "@/hooks/useOnlineUsers";
 import { useCommandHandler } from "@/hooks/useCommandHandler";
 import { useBattleCommands } from "@/hooks/useBattleCommands";
-import { isAdminUser, isOwnerUser } from "@/utils/gameCommands";
 import { useToast } from "@/hooks/use-toast";
 import { ChatContainer } from "@/components/chat/ChatContainer";
 
@@ -26,7 +24,9 @@ const Chat = () => {
     setPlayerData, 
     broadcast, 
     logout,
-    isLoading 
+    isLoading,
+    userIsAdmin,
+    userIsOwner
   } = useChat(username);
   
   const onlineUsers = useOnlineUsers(username);
@@ -43,9 +43,6 @@ const Chat = () => {
     getPokemonStats,
     forfeitBattle
   } = usePokemonBattle(username);
-  
-  const userIsAdmin = isAdminUser(username, OWNER_LIST, ADMIN_LIST);
-  const userIsOwner = isOwnerUser(username, OWNER_LIST);
   
   const { 
     handleCommand,

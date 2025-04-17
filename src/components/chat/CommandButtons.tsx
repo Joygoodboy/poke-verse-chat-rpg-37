@@ -74,7 +74,10 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
           commands={[
             { name: "clearchat", icon: <Crown size={16} /> },
             { name: "ban", icon: <Crown size={16} /> },
-            { name: "unban", icon: <Crown size={16} /> }
+            { name: "unban", icon: <Crown size={16} /> },
+            { name: "givecoins", icon: <Coins size={16} /> },
+            { name: "givepokemon", icon: <MessageSquare size={16} /> },
+            { name: "announce", icon: <Crown size={16} /> }
           ]}
           onCommandClick={onCommandClick}
           variant="default"
@@ -139,7 +142,7 @@ export const CommandGroup: React.FC<CommandGroupProps> = ({
       </Button>
       
       {expanded && (
-        <div className="absolute top-full left-0 mt-1 bg-slate-800 rounded-md p-1 shadow-lg z-10 flex flex-col gap-1 min-w-[150px]">
+        <div className="absolute top-full left-0 mt-1 bg-slate-800 rounded-md p-1 shadow-lg z-50 flex flex-col gap-1 min-w-[150px]">
           {commands.map((command) => (
             <Button
               key={command.name}

@@ -4,7 +4,7 @@ import { BattleState, BattlePokemon } from '@/hooks/usePokemonBattle';
 import { Progress } from "@/components/ui/progress";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Swords, ArrowRight, Shield, Zap, Info } from "lucide-react";
+import { Swords, ArrowRight, Shield, Zap, Info, Video, Flame } from "lucide-react";
 import { generateBattleImage, generatePokedexEntry } from '@/utils/battleImageGenerator';
 
 interface BattleFieldProps {
@@ -25,6 +25,8 @@ export const BattleField: React.FC<BattleFieldProps> = ({
   const { challenger, opponent, challengerPokemon, opponentPokemon, turn, logs, winner, lastAttack } = battle;
   const [showPokedex, setShowPokedex] = useState(false);
   const [battleReady, setBattleReady] = useState(false);
+  const [showVideo, setShowVideo] = useState(false);
+  const [videoUrl, setVideoUrl] = useState('');
   
   const isChallenger = username === challenger;
   const userPokemon = isChallenger ? challengerPokemon : opponentPokemon;
@@ -40,6 +42,47 @@ export const BattleField: React.FC<BattleFieldProps> = ({
       setBattleReady(false);
     }
   }, [userPokemon, enemyPokemon]);
+  
+  // Video effect for critical moves and when a Pokémon faints
+  useEffect(() => {
+    if (lastAttack && (lastAttack.isCritical || lastAttack.damage > 30)) {
+      const moveType = lastAttack.moveName.toLowerCase();
+      let videoId = '';
+      
+      if (moveType.includes('fire') || moveType.includes('ember') || moveType.includes('blast')) {
+        videoId = 'rHG-JO8gIGk'; // Fire attack video
+      } else if (moveType.includes('water') || moveType.includes('bubble')) {
+        videoId = 'EBYsx1QWF9A'; // Water attack video
+      } else if (moveType.includes('thunder') || moveType.includes('shock')) {
+        videoId = 'v2kWMmL_3D8'; // Electric attack video
+      } else {
+        videoId = 'rHG-JO8gIGk'; // Default attack video
+      }
+      
+      setVideoUrl(`https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0&showinfo=0&rel=0&loop=1&playlist=${videoId}&mute=1`);
+      setShowVideo(true);
+      
+      // Close video after 3 seconds
+      const timer = setTimeout(() => {
+        setShowVideo(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+    
+    if (winner) {
+      // Show victory video
+      setVideoUrl('https://www.youtube.com/embed/5_aRjvM_DHo?autoplay=1&controls=0&showinfo=0&rel=0&start=5&mute=1');
+      setShowVideo(true);
+      
+      // Close video after 5 seconds
+      const timer = setTimeout(() => {
+        setShowVideo(false);
+      }, 5000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [lastAttack, winner]);
   
   // If Pokémon aren't selected yet, show waiting message
   if (!userPokemon || !enemyPokemon) {
@@ -71,6 +114,33 @@ export const BattleField: React.FC<BattleFieldProps> = ({
       {/* Background effects */}
       <div className="absolute inset-0 bg-[url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png')] opacity-5 bg-repeat"></div>
       
+      {/* Video overlay */}
+      {showVideo && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center" onClick={() => setShowVideo(false)}>
+          <div className="relative w-full max-w-2xl aspect-video">
+            <iframe 
+              className="absolute inset-0 w-full h-full"
+              src={videoUrl} 
+              title="Battle video effect"
+              frameBorder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+              allowFullScreen
+            ></iframe>
+            <button 
+              className="absolute top-2 right-2 bg-white/10 text-white p-1 rounded-full hover:bg-white/30"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowVideo(false);
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="relative z-10">
         {/* Battle header */}
         <div className="flex justify-between items-center mb-4">
@@ -89,7 +159,7 @@ export const BattleField: React.FC<BattleFieldProps> = ({
             </Button>
             
             {winner ? (
-              <div className="px-3 py-1 bg-yellow-500 text-black font-bold rounded">
+              <div className="px-3 py-1 bg-yellow-500 text-black font-bold rounded animate-pulse">
                 {winner === username ? "You Won!" : "You Lost!"}
               </div>
             ) : (
@@ -130,7 +200,7 @@ export const BattleField: React.FC<BattleFieldProps> = ({
               <h4 className="text-sm font-bold mb-2">{isUserTurn ? "Choose a move:" : "Waiting for opponent..."}</h4>
               
               <div className="grid grid-cols-2 gap-2">
-                {isUserTurn && userPokemon.moves.map((move, index) => (
+                {isUserTurn && userPokemon.moves && userPokemon.moves.map((move, index) => (
                   <Button 
                     key={index}
                     onClick={() => onMoveSelect(index)}
@@ -140,13 +210,20 @@ export const BattleField: React.FC<BattleFieldProps> = ({
                       move.type === "Grass" ? "bg-green-600 hover:bg-green-700" :
                       move.type === "Electric" ? "bg-yellow-600 hover:bg-yellow-700" :
                       "bg-indigo-600 hover:bg-indigo-700"
-                    } text-white flex items-center justify-between`}
+                    } text-white flex items-center justify-between group relative overflow-hidden`}
                     disabled={!isUserTurn}
                   >
-                    <span className="capitalize">{move.name}</span>
-                    <div className="flex items-center">
+                    <span className="capitalize relative z-10">{move.name}</span>
+                    <div className="flex items-center relative z-10">
                       <Zap className="h-3 w-3 mr-1" />
                       <span>{move.power}</span>
+                    </div>
+                    {/* Move hover effect */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity">
+                      {move.type === "Fire" && <Flame className="absolute right-0 bottom-0 h-10 w-10 text-yellow-300" />}
+                      {move.type === "Water" && <svg className="absolute right-0 bottom-0 h-10 w-10 text-blue-300" viewBox="0 0 24 24"><path fill="currentColor" d="M12 2c-5.33 4.55-8 8.48-8 11.8 0 4.98 3.8 8.2 8 8.2s8-3.22 8-8.2c0-3.32-2.67-7.25-8-11.8z"/></svg>}
+                      {move.type === "Electric" && <svg className="absolute right-0 bottom-0 h-10 w-10 text-yellow-300" viewBox="0 0 24 24"><path fill="currentColor" d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>}
+                      {move.type === "Grass" && <svg className="absolute right-0 bottom-0 h-10 w-10 text-green-300" viewBox="0 0 24 24"><path fill="currentColor" d="M12 22c4.97 0 9-4.03 9-9-4.97 0-9 4.03-9 9zm0-18c-4.97 0-9 4.03-9 9 4.97 0 9-4.03 9-9zm0 0c0 4.97 4.03 9 9 9-4.97 0-9-4.03-9-9zm0 0c0-4.97-4.03-9-9-9 4.97 0 9 4.03 9 9z"/></svg>}
                     </div>
                   </Button>
                 ))}
