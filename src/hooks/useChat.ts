@@ -7,7 +7,7 @@ export const OWNER_LIST = ["joyhostingbsite.com@gmail.com", "joyhoswebsite@gmail
 export const ADMIN_LIST = ["Gary", "Professor Oak", "mod@pokemon.com", "moderator@pokemon.com"];
 
 export const useChat = (username: string) => {
-  const { playerData, setPlayerData } = usePlayerData(username);
+  const { playerData, setPlayerData, isLoading } = usePlayerData(username);
   const { messages, broadcast: broadcastMessage } = useChatMessages();
   const navigate = useNavigate();
   
@@ -25,6 +25,7 @@ export const useChat = (username: string) => {
     playerData,
     setPlayerData,
     broadcast,
-    logout
+    logout,
+    isLoading
   };
 };

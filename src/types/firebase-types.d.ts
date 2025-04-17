@@ -1,4 +1,5 @@
 
+// Firebase type declarations
 declare module 'firebase/app' {
   export interface FirebaseApp {
     name: string;
@@ -19,6 +20,7 @@ declare module 'firebase/database' {
   export function onValue(ref: any, callback: (snapshot: any) => void): () => void;
   export function onChildAdded(ref: any, callback: (snapshot: any) => void): () => void;
   export function remove(ref: any): Promise<void>;
+  export function update(ref: any, data: any): Promise<void>;
   
   export interface DataSnapshot {
     exists(): boolean;
@@ -34,4 +36,21 @@ declare module 'firebase/auth' {
   export function createUserWithEmailAndPassword(auth: any, email: string, password: string): Promise<any>;
   export function signInWithEmailAndPassword(auth: any, email: string, password: string): Promise<any>;
   export function signOut(auth: any): Promise<void>;
+}
+
+// Legacy firebase module
+declare module 'firebase' {
+  interface Firebase {
+    database: () => {
+      ref: (path: string) => {
+        on: (event: string, callback: Function) => void;
+        off: () => void;
+        push: (data: any) => { key: string };
+        set: (value: any) => Promise<void>;
+      }
+    }
+  }
+  
+  const firebase: Firebase;
+  export default firebase;
 }

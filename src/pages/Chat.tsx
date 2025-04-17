@@ -25,7 +25,8 @@ const Chat = () => {
     playerData,
     setPlayerData, 
     broadcast, 
-    logout 
+    logout,
+    isLoading 
   } = useChat(username);
   
   const onlineUsers = useOnlineUsers(username);
@@ -149,6 +150,7 @@ const Chat = () => {
       selectingPokemon={selectingPokemon}
       userIsAdmin={userIsAdmin}
       userIsOwner={userIsOwner}
+      isLoading={isLoading}
       handleSendCommand={handleSendCommand}
       handleBanUser={handleBanUser}
       handleSelectPokemon={handleSelectPokemon}

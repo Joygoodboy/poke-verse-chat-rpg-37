@@ -3,120 +3,102 @@ import { db } from '../firebase';
 import { ref, set, get, onValue } from 'firebase/database';
 import { PlayerData } from '@/types/gameTypes';
 
+// Default player data
+const DEFAULT_PLAYER_DATA: PlayerData = {
+  inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
+  wallet: 500,
+  bank: 0,
+  party: [],
+  pc: [],
+  lastSpawn: null,
+  lastDailyClaim: null,
+  xp: 0,
+  level: 1,
+  bonusUsed: false,
+  lastSlotPlay: null,
+  lastInterestClaim: null,
+  bannedUsers: [],
+  lastRob: null
+};
+
 export const usePlayerData = (username: string) => {
-  const [playerData, setPlayerData] = useState<PlayerData>({
-    inventory: { pokeball: 5, greatball: 0, ultraball: 0, masterball: 0 },
-    wallet: 500,
-    bank: 0,
-    party: [],
-    pc: [],
-    lastSpawn: null,
-    lastDailyClaim: null,
-    xp: 0,
-    level: 1,
-    bonusUsed: false,
-    lastSlotPlay: null,
-    lastInterestClaim: null,
-    bannedUsers: [],
-    lastRob: null
-  });
+  const [playerData, setPlayerData] = useState<PlayerData>(DEFAULT_PLAYER_DATA);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   // Load saved data on mount
   useEffect(() => {
-    const loadPlayerData = async () => {
-      if (!username) return;
-      
-      try {
-        console.log("Loading player data for:", username);
-        const playerRef = ref(db, `players/${username}`);
+    if (!username) {
+      setIsLoading(false);
+      return;
+    }
+    
+    const playerRef = ref(db, `players/${username}`);
+    console.log("Loading player data for:", username);
+    
+    // Use onValue to keep data in sync with Firebase in real-time
+    const unsubscribe = onValue(playerRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const savedData = snapshot.val();
+        console.log("Found player data in Firebase:", savedData);
         
-        // Use onValue to keep data in sync with Firebase
-        const unsubscribe = onValue(playerRef, (snapshot) => {
-          if (snapshot.exists()) {
-            console.log("Found player data in Firebase:", snapshot.val());
-            const savedData = snapshot.val();
-            setPlayerData(prevData => ({
-              ...prevData,
-              ...savedData,
-              // Ensure all required properties exist
-              inventory: {
-                pokeball: 5,
-                greatball: 0,
-                ultraball: 0,
-                masterball: 0,
-                ...(savedData.inventory || {})
-              },
-              party: savedData.party || [],
-              pc: savedData.pc || [],
-            }));
-          } else {
-            console.log("No player data found in Firebase, checking localStorage");
-            const localData = localStorage.getItem(`pokemonSave_${username}`);
-            if (localData) {
-              try {
-                const parsedData = JSON.parse(localData);
-                console.log("Loaded data from localStorage:", parsedData);
-                setPlayerData(prevData => ({
-                  ...prevData,
-                  ...parsedData,
-                  // Ensure all required properties exist
-                  inventory: {
-                    pokeball: 5,
-                    greatball: 0,
-                    ultraball: 0,
-                    masterball: 0,
-                    ...(parsedData.inventory || {})
-                  },
-                  party: parsedData.party || [],
-                  pc: parsedData.pc || [],
-                }));
-                
-                // Save to Firebase for future use
-                set(playerRef, parsedData);
-              } catch (e) {
-                console.error("Error loading saved data from localStorage", e);
-              }
-            } else {
-              console.log("Creating new player data");
-              // Save default data to Firebase for new users
-              set(playerRef, playerData);
-            }
-          }
-        });
+        // Merge saved data with defaults to ensure all properties exist
+        const mergedData = {
+          ...DEFAULT_PLAYER_DATA,
+          ...savedData,
+          // Make sure nested objects are properly merged
+          inventory: {
+            ...DEFAULT_PLAYER_DATA.inventory,
+            ...(savedData.inventory || {})
+          },
+          party: savedData.party || [],
+          pc: savedData.pc || [],
+          bannedUsers: savedData.bannedUsers || []
+        };
         
-        return unsubscribe;
-      } catch (error) {
-        console.error("Error loading player data from Firebase:", error);
-        // Try localStorage as fallback
-        const localData = localStorage.getItem(`pokemonSave_${username}`);
-        if (localData) {
-          try {
-            setPlayerData(JSON.parse(localData));
-          } catch (e) {
-            console.error("Error loading saved data from localStorage", e);
-          }
-        }
+        setPlayerData(mergedData);
+      } else {
+        console.log("No player data found in Firebase, creating default data");
+        // Initialize player data in Firebase
+        set(playerRef, DEFAULT_PLAYER_DATA)
+          .then(() => console.log("Default player data initialized"))
+          .catch(err => console.error("Error initializing player data:", err));
+          
+        setPlayerData(DEFAULT_PLAYER_DATA);
       }
-    };
+      
+      setIsLoading(false);
+    }, (error) => {
+      console.error("Error loading player data from Firebase:", error);
+      setIsLoading(false);
+    });
 
-    loadPlayerData();
+    // Clean up listener on unmount
+    return () => unsubscribe();
   }, [username]);
 
-  // Save player data when it changes
-  useEffect(() => {
+  // Custom setter that updates both local state and Firebase
+  const updatePlayerData = (newData: Partial<PlayerData> | ((prev: PlayerData) => PlayerData)) => {
     if (!username) return;
     
-    console.log("Saving player data for:", username);
-    
-    // Save to localStorage as backup
-    localStorage.setItem(`pokemonSave_${username}`, JSON.stringify(playerData));
-    
-    // Save to Firebase
-    const playerRef = ref(db, `players/${username}`);
-    set(playerRef, playerData).catch(err => {
-      console.error("Error saving player data to Firebase:", err);
+    // Handle both direct updates and function updates
+    setPlayerData(prevData => {
+      const nextData = typeof newData === 'function' 
+        ? newData(prevData) 
+        : { ...prevData, ...newData };
+      
+      // Save updated data to Firebase
+      const playerRef = ref(db, `players/${username}`);
+      set(playerRef, nextData)
+        .catch(err => console.error("Error saving player data to Firebase:", err));
+      
+      console.log("Saving player data for:", username);
+      return nextData;
     });
-  }, [playerData, username]);
+  };
 
-  return { playerData, setPlayerData };
+  return { 
+    playerData, 
+    setPlayerData: updatePlayerData,
+    isLoading 
+  };
 };

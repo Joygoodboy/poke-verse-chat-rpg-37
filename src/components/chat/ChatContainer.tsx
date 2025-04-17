@@ -18,6 +18,7 @@ interface ChatContainerProps {
   selectingPokemon: boolean;
   userIsAdmin: boolean;
   userIsOwner: boolean;
+  isLoading?: boolean;
   handleSendCommand: (message: string) => void;
   handleBanUser: (user: string) => void;
   handleSelectPokemon: (pokemon: any) => void;
@@ -38,6 +39,7 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
   selectingPokemon,
   userIsAdmin,
   userIsOwner,
+  isLoading = false,
   handleSendCommand,
   handleBanUser,
   handleSelectPokemon,
@@ -66,28 +68,40 @@ export const ChatContainer: React.FC<ChatContainerProps> = ({
         <CommandPanel 
           userIsAdmin={userIsAdmin}
           onCommandClick={handleCommandButtonClick}
+          isLoading={isLoading}
         />
         
-        <BattleArea
-          activeBattle={activeBattle}
-          pendingChallenge={pendingChallenge}
-          selectingPokemon={selectingPokemon}
-          username={username}
-          playerData={playerData}
-          onSelectPokemon={handleSelectPokemon}
-          onMoveSelect={(moveIndex) => executeMove(moveIndex, broadcast)}
-          onForfeit={() => forfeitBattle(broadcast)}
-          onPokemonStats={() => getPokemonStats(broadcast)}
-        />
-        
-        <ChatMessages 
-          messages={messages}
-          username={username}
-        />
+        {isLoading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-white text-lg font-medium bg-blue-800/50 backdrop-blur-sm p-4 rounded-lg shadow-lg">
+              Loading your Pokémon data...
+            </div>
+          </div>
+        ) : (
+          <>
+            <BattleArea
+              activeBattle={activeBattle}
+              pendingChallenge={pendingChallenge}
+              selectingPokemon={selectingPokemon}
+              username={username}
+              playerData={playerData}
+              onSelectPokemon={handleSelectPokemon}
+              onMoveSelect={(moveIndex) => executeMove(moveIndex, broadcast)}
+              onForfeit={() => forfeitBattle(broadcast)}
+              onPokemonStats={() => getPokemonStats(broadcast)}
+            />
+            
+            <ChatMessages 
+              messages={messages}
+              username={username}
+            />
+          </>
+        )}
         
         <ChatInput 
           onSendMessage={handleSendCommand}
           placeholder="Chat or enter a command (/help)..."
+          disabled={isLoading}
         />
       </div>
       
