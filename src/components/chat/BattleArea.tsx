@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BattleField } from "@/components/chat/BattleField";
+import BattleField from "@/components/chat/BattleField";
 import { PokemonSelector } from "@/components/chat/PokemonSelector";
 
 interface BattleAreaProps {

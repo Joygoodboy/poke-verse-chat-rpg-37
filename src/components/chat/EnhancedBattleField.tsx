@@ -9,8 +9,22 @@ import { playBattleAnimation, AnimationType } from '../../utils/battleAnimations
 import { battleCommentary, CommentaryType } from '../../utils/battleCommentary';
 import '../../utils/battleAnimations.css';
 
+interface EnhancedBattleFieldProps {
+  battle: any;
+  username: string;
+  onMoveSelect: (moveIndex: number) => void;
+  onForfeit: () => void;
+  onPokemonStats: () => void;
+}
+
 // Enhanced battle field with visual effects and fusion
-const EnhancedBattleField: React.FC = () => {
+const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
+  battle,
+  username,
+  onMoveSelect,
+  onForfeit,
+  onPokemonStats
+}) => {
   const { playerData } = usePlayerData();
   const { 
     playerPokemon, 
@@ -49,6 +63,12 @@ const EnhancedBattleField: React.FC = () => {
   // Handle Pokemon attack with enhanced animations
   const handleAttack = async (moveName: string) => {
     if (!battleActive || !playerPokemon || !opponentPokemon) return;
+    
+    // Use the onMoveSelect prop for the actual move selection
+    const moveIndex = playerPokemon.moves.findIndex(move => move === moveName);
+    if (moveIndex >= 0) {
+      onMoveSelect(moveIndex);
+    }
     
     // Determine if this is a special move
     const isSpecialMove = moveName.includes('Special') || 
@@ -149,6 +169,11 @@ const EnhancedBattleField: React.FC = () => {
   // Toggle move details
   const toggleMoveDetails = () => {
     setShowMoveDetails(!showMoveDetails);
+  };
+
+  // Use the onPokemonStats prop
+  const handlePokemonStats = () => {
+    onPokemonStats();
   };
 
   if (!battleActive || !playerPokemon || !opponentPokemon) {
