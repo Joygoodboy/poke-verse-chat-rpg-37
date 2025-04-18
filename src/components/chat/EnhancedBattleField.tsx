@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import usePlayerData from '../../hooks/usePlayerData';
+import { usePlayerData } from '../../hooks/usePlayerData';
 import usePokemonBattle from '../../hooks/usePokemonBattle';
 import { useCommandHandler } from '../../hooks/useCommandHandler';
 import { BattleFusionSystem, BattlePokemon } from '../../utils/battleFusion';
