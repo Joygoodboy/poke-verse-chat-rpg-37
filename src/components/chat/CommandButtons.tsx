@@ -14,13 +14,45 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
   onCommandClick,
   disabled = false
 }) => {
+  // Define command groups with their commands
+  const helpCommands = [
+    { name: "help", icon: <HelpCircle size={16} /> }
+  ];
+  
+  const economyCommands = [
+    { name: "wallet", icon: <Coins size={16} /> },
+    { name: "daily", icon: <Coins size={16} /> },
+    { name: "bank", icon: <Coins size={16} /> },
+    { name: "leaderboard", icon: <Crown size={16} /> }
+  ];
+  
+  const pokemonCommands = [
+    { name: "spawn", icon: <MessageSquare size={16} /> },
+    { name: "catch", icon: <MessageSquare size={16} /> },
+    { name: "party", icon: <MessageSquare size={16} /> },
+    { name: "pc", icon: <MessageSquare size={16} /> }
+  ];
+  
+  const battleCommands = [
+    { name: "pokemonchallenge", icon: <Sword size={16} /> },
+    { name: "forfeit", icon: <Sword size={16} /> },
+    { name: "pokemonstats", icon: <Sword size={16} /> }
+  ];
+  
+  const adminCommands = [
+    { name: "clearchat", icon: <Crown size={16} /> },
+    { name: "ban", icon: <Crown size={16} /> },
+    { name: "unban", icon: <Crown size={16} /> },
+    { name: "givecoins", icon: <Coins size={16} /> },
+    { name: "givepokemon", icon: <MessageSquare size={16} /> },
+    { name: "announce", icon: <Crown size={16} /> }
+  ];
+  
   return (
     <>
       <CommandGroup 
         title="Help" 
-        commands={[
-          { name: "help", icon: <HelpCircle size={16} /> }
-        ]}
+        commands={helpCommands}
         onCommandClick={onCommandClick}
         variant="outline"
         icon={<HelpCircle size={16} />}
@@ -29,12 +61,7 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
       
       <CommandGroup 
         title="Economy" 
-        commands={[
-          { name: "wallet", icon: <Coins size={16} /> },
-          { name: "daily", icon: <Coins size={16} /> },
-          { name: "bank", icon: <Coins size={16} /> },
-          { name: "leaderboard", icon: <Crown size={16} /> }
-        ]}
+        commands={economyCommands}
         onCommandClick={onCommandClick}
         variant="secondary"
         icon={<Coins size={16} />}
@@ -43,12 +70,7 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
       
       <CommandGroup 
         title="Pokémon" 
-        commands={[
-          { name: "spawn", icon: <MessageSquare size={16} /> },
-          { name: "catch", icon: <MessageSquare size={16} /> },
-          { name: "party", icon: <MessageSquare size={16} /> },
-          { name: "pc", icon: <MessageSquare size={16} /> }
-        ]}
+        commands={pokemonCommands}
         onCommandClick={onCommandClick}
         variant="secondary"
         icon={<MessageSquare size={16} />}
@@ -57,11 +79,7 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
       
       <CommandGroup 
         title="Battle" 
-        commands={[
-          { name: "pokemonchallenge", icon: <Sword size={16} /> },
-          { name: "forfeit", icon: <Sword size={16} /> },
-          { name: "pokemonstats", icon: <Sword size={16} /> }
-        ]}
+        commands={battleCommands}
         onCommandClick={onCommandClick}
         variant="secondary"
         icon={<Sword size={16} />}
@@ -71,14 +89,7 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
       {userIsAdmin && (
         <CommandGroup 
           title="Admin" 
-          commands={[
-            { name: "clearchat", icon: <Crown size={16} /> },
-            { name: "ban", icon: <Crown size={16} /> },
-            { name: "unban", icon: <Crown size={16} /> },
-            { name: "givecoins", icon: <Coins size={16} /> },
-            { name: "givepokemon", icon: <MessageSquare size={16} /> },
-            { name: "announce", icon: <Crown size={16} /> }
-          ]}
+          commands={adminCommands}
           onCommandClick={onCommandClick}
           variant="default"
           icon={<Crown size={16} />}

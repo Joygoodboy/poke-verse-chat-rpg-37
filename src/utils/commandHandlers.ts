@@ -14,11 +14,22 @@ import {
   handleSpawnCommand
 } from './commands/pokemonCommands';
 
+// Import admin commands from systemCommands
+import {
+  handleGiveCoinsCommand,
+  handleGivePokemonCommand,
+  handleAnnouncementCommand
+} from './commands/systemCommands';
+
 export {
   handleHelpCommand,
   handleLeaderboardCommand,
   handleCatchCommand,
   handleSpawnCommand,
   handleClearChatCommand,
-  handleLogoutCommand
+  handleLogoutCommand,
+  // Export admin commands
+  handleGiveCoinsCommand,
+  handleGivePokemonCommand,
+  handleAnnouncementCommand
 };
