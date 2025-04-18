@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { usePlayerData } from '../../hooks/usePlayerData';
@@ -8,6 +7,7 @@ import { BattleFusionSystem, BattlePokemon } from '../../utils/battleFusion';
 import { playBattleAnimation, AnimationType } from '../../utils/battleAnimations';
 import { battleCommentary, CommentaryType } from '../../utils/battleCommentary';
 import '../../utils/battleAnimations.css';
+import { Pokemon } from '@/types/gameTypes';
 
 interface EnhancedBattleFieldProps {
   battle: any;
@@ -36,19 +36,24 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
     opponentMaxHealth,
     attackOpponent,
     endBattle
-  } = usePokemonBattle();
+  } = usePokemonBattle(username);
   
-  const { executeCommand } = useCommandHandler();
+  const { executeCommand } = useCommandHandler({
+    username,
+    playerData: playerData || {},
+    setPlayerData: () => {}, // Placeholder function since we're just using this for executeCommand
+    broadcast: () => {}, // Placeholder function
+    logout: () => {}, // Placeholder function
+    isAdmin: false,
+    isOwner: false
+  });
   
-  // State for fusion UI
   const [showFusionUI, setShowFusionUI] = useState(false);
   const [selectedForFusion, setSelectedForFusion] = useState<number[]>([]);
   const [showMoveDetails, setShowMoveDetails] = useState(false);
   
-  // Battle fusion system
   const fusionSystem = new BattleFusionSystem();
   
-  // Effect to show epic move details on first render
   useEffect(() => {
     if (battleActive && playerPokemon) {
       setTimeout(() => {
@@ -60,31 +65,26 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
     }
   }, [battleActive, playerPokemon]);
   
-  // Handle Pokemon attack with enhanced animations
   const handleAttack = async (moveName: string) => {
     if (!battleActive || !playerPokemon || !opponentPokemon) return;
     
-    // Use the onMoveSelect prop for the actual move selection
     const moveIndex = playerPokemon.moves.findIndex(move => move === moveName);
     if (moveIndex >= 0) {
       onMoveSelect(moveIndex);
     }
     
-    // Determine if this is a special move
     const isSpecialMove = moveName.includes('Special') || 
       moveName.includes('Hyper') || 
       moveName.includes('Fusion') ||
       moveName.includes('Beam') ||
       moveName.includes('Blast');
       
-    const isCritical = Math.random() < 0.2; // 20% chance for critical
+    const isCritical = Math.random() < 0.2;
     
-    // Calculate damage (simplified)
     const baseDamage = isSpecialMove ? 30 : 15;
     const criticalMultiplier = isCritical ? 1.5 : 1.0;
     const damage = Math.floor(baseDamage * criticalMultiplier);
     
-    // Choose animation type
     let animationType = AnimationType.NORMAL_ATTACK;
     
     if (isCritical) {
@@ -95,7 +95,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
       animationType = AnimationType.HEAVY_ATTACK;
     }
     
-    // Play animation before damage is applied
     await playBattleAnimation(animationType, {
       attacker: playerPokemon.name,
       defender: opponentPokemon.name,
@@ -104,12 +103,9 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
       effectiveness: isCritical ? "super effective" : "normal"
     });
     
-    // Apply actual attack in the battle system
     attackOpponent(damage);
     
-    // Check if opponent fainted
     if (opponentHealth - damage <= 0) {
-      // Play victory animation
       setTimeout(async () => {
         await playBattleAnimation(AnimationType.VICTORY, {
           attacker: playerPokemon.name,
@@ -117,31 +113,24 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
           moveName: moveName
         });
         
-        // End battle after animation
         endBattle();
       }, 500);
     }
   };
   
-  // Handle Pokemon switching
   const handleSwitch = async () => {
-    // Execute the switch command
     executeCommand('/switch', ['']);
   };
   
-  // Handle Pokemon fusion
   const handleFusion = async () => {
     setShowFusionUI(!showFusionUI);
     setSelectedForFusion([]);
   };
   
-  // Select Pokemon for fusion
   const selectForFusion = (index: number) => {
     if (selectedForFusion.includes(index)) {
-      // Remove if already selected
       setSelectedForFusion(selectedForFusion.filter(i => i !== index));
     } else {
-      // Add if not already selected (max 3)
       if (selectedForFusion.length < 3) {
         setSelectedForFusion([...selectedForFusion, index]);
       } else {
@@ -150,28 +139,23 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
     }
   };
   
-  // Execute fusion with selected Pokemon
   const executeFusion = async () => {
     if (selectedForFusion.length < 2) {
       toast.error("Select at least 2 Pokemon for fusion");
       return;
     }
     
-    // Convert to 1-based indices for command
     const fusionArgs = selectedForFusion.map(index => (index + 1).toString());
     executeCommand('/fuse', fusionArgs);
     
-    // Hide fusion UI
     setShowFusionUI(false);
     setSelectedForFusion([]);
   };
   
-  // Toggle move details
   const toggleMoveDetails = () => {
     setShowMoveDetails(!showMoveDetails);
   };
 
-  // Use the onPokemonStats prop
   const handlePokemonStats = () => {
     onPokemonStats();
   };
@@ -194,9 +178,7 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
 
   return (
     <div className="p-4 bg-gradient-to-b from-blue-900 to-purple-900 rounded-lg shadow-lg h-full">
-      {/* Battle Arena */}
       <div className="relative h-72 mb-4 overflow-hidden bg-gradient-to-b from-green-800 to-green-600 rounded-lg">
-        {/* Opponent Pokemon */}
         <div className="absolute top-4 right-4 w-40 h-40 flex items-center justify-center">
           <div className="transform hover:scale-110 transition-transform">
             <img 
@@ -207,7 +189,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
           </div>
         </div>
         
-        {/* Player Pokemon */}
         <div className="absolute bottom-4 left-4 w-40 h-40 flex items-center justify-center">
           <div className="transform hover:scale-110 transition-transform">
             <img 
@@ -218,7 +199,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
           </div>
         </div>
         
-        {/* Health Bars */}
         <div className="absolute top-2 left-2 w-1/3">
           <div className="text-sm font-bold text-white mb-1">
             {opponentPokemon.name} Lv.{opponentPokemon.level || '??'}
@@ -250,7 +230,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
         </div>
       </div>
       
-      {/* Battle Actions */}
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           onClick={() => handleAttack(playerPokemon.moves[0] || "Tackle")}
@@ -278,7 +257,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
         </button>
       </div>
       
-      {/* Move List */}
       {showMoveDetails && (
         <div className="mb-4 p-3 bg-gray-800 bg-opacity-70 rounded-lg">
           <h3 className="text-white font-bold mb-2">Moves:</h3>
@@ -305,12 +283,11 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
         </div>
       )}
       
-      {/* Fusion UI */}
       {showFusionUI && playerData && playerData.pokemon && (
         <div className="mb-4 p-3 bg-indigo-900 bg-opacity-70 rounded-lg">
           <h3 className="text-white font-bold mb-2">Select Pokemon for Fusion:</h3>
           <div className="grid grid-cols-3 gap-2">
-            {playerData.pokemon.map((pokemon, index) => (
+            {playerData.pokemon.map((pokemon: Pokemon, index: number) => (
               <div 
                 key={index}
                 onClick={() => selectForFusion(index)}
@@ -321,7 +298,7 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
                 }`}
               >
                 <img 
-                  src={pokemon.sprite || "https://via.placeholder.com/48"} 
+                  src={pokemon.image || "https://via.placeholder.com/48"} 
                   alt={pokemon.name}
                   className="w-12 h-12 object-contain mx-auto"
                 />
@@ -345,7 +322,6 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
         </div>
       )}
       
-      {/* Battle Info */}
       <div className="p-3 bg-gray-800 bg-opacity-70 rounded-lg">
         <div className="flex justify-between items-center">
           <div>

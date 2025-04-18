@@ -1,7 +1,8 @@
 
 import React from 'react';
-import BattleField from "@/components/chat/BattleField";
-import { PokemonSelector } from "@/components/chat/PokemonSelector";
+import BattleField from "./BattleField";
+import { PokemonSelector } from "./PokemonSelector";
+import { Pokemon } from '@/types/gameTypes';
 
 interface BattleAreaProps {
   activeBattle: any;
@@ -36,7 +37,7 @@ export const BattleArea: React.FC<BattleAreaProps> = ({
         <>
           {selectingPokemon ? (
             <PokemonSelector 
-              party={playerData.party}
+              party={playerData.party || []}
               onSelect={onSelectPokemon}
             />
           ) : (
