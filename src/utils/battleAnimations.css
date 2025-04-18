@@ -1,0 +1,548 @@
+
+/* Battle Animation Core Styles */
+.battle-animation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  animation: fadeIn 0.3s forwards;
+}
+
+.battle-animation-fade {
+  animation: fadeOut 0.5s forwards;
+}
+
+.battle-animation-wrapper {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Background Variations */
+.normal-attack-bg {
+  background: linear-gradient(135deg, #2a3c5a, #141e30);
+}
+
+.heavy-attack-bg {
+  background: linear-gradient(135deg, #800020, #360000);
+}
+
+.special-attack-bg {
+  background: linear-gradient(135deg, #4b6cb7, #182848);
+}
+
+.critical-hit-bg {
+  background: radial-gradient(circle, #ff4500, #8b0000);
+}
+
+.victory-bg {
+  background: radial-gradient(circle, #ffd700, #ff8c00);
+}
+
+.fusion-bg {
+  background: linear-gradient(135deg, #9d50bb, #6e48aa);
+}
+
+/* Animation Elements */
+.battle-animation-cutscene {
+  width: 90%;
+  height: 80%;
+  position: relative;
+  perspective: 1000px;
+}
+
+.battle-animation-attacker,
+.battle-animation-defender {
+  position: absolute;
+  font-size: 1.5rem;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+  transition: all 0.5s ease;
+}
+
+.battle-animation-attacker {
+  left: 10%;
+  bottom: 30%;
+  transform: translateZ(0);
+}
+
+.battle-animation-defender {
+  right: 10%;
+  top: 30%;
+  transform: translateZ(0);
+}
+
+.battle-animation-move {
+  position: absolute;
+  top: 45%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2rem;
+  color: white;
+  text-align: center;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
+  animation: pulseText 1s infinite alternate;
+}
+
+/* Heavy Attack Animation */
+.battle-animation-move-special {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.move-name {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+  animation: expandText 0.5s forwards;
+}
+
+.move-effect {
+  width: 100px;
+  height: 100px;
+  margin: 1rem auto;
+  border-radius: 50%;
+  animation: expandEffect 1.5s forwards;
+}
+
+.special-effect {
+  background: radial-gradient(circle, #00bfff, #1e90ff);
+  box-shadow: 0 0 30px #00bfff;
+}
+
+.heavy-effect {
+  background: radial-gradient(circle, #ff4500, #8b0000);
+  box-shadow: 0 0 30px #ff4500;
+}
+
+.attacking {
+  animation: attackMove 1.5s forwards;
+}
+
+.receiving-hit {
+  animation: receiveHit 1.5s forwards;
+}
+
+.battle-super-effective {
+  color: #ff4500;
+  animation: receiveHit 1.5s forwards, shake 0.5s 0.7s 3 forwards !important;
+}
+
+.battle-not-effective {
+  color: #808080;
+  animation: receiveHit 1.5s forwards, minorShake 0.3s 0.7s 2 forwards !important;
+}
+
+.damage-indicator {
+  position: absolute;
+  right: 15%;
+  top: 20%;
+  font-size: 2rem;
+  font-weight: bold;
+  color: #ff4500;
+  opacity: 0;
+  animation: damageIndicator 2s forwards 0.5s;
+}
+
+/* Critical Hit Animation */
+.critical-flash {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  opacity: 0;
+  animation: criticalFlash 3s forwards;
+}
+
+.critical-attacker {
+  animation: criticalAttack 2.5s forwards;
+}
+
+.battle-animation-move-critical {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.critical-text {
+  margin-top: 1rem;
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ff4500;
+  text-shadow: 0 0 15px #ff0000;
+  opacity: 0;
+  animation: criticalText 2s forwards 0.8s;
+}
+
+.critical-hit {
+  animation: criticalHit 2.5s forwards;
+}
+
+.critical-damage {
+  position: absolute;
+  right: 15%;
+  top: 20%;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ff0000;
+  opacity: 0;
+  animation: criticalDamage 2s forwards 1.5s;
+}
+
+/* Victory Animation */
+.victory-flash {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  opacity: 0;
+  animation: victoryFlash 4s forwards;
+}
+
+.victory-pose {
+  animation: victoryPose 3s forwards;
+}
+
+.fainted {
+  animation: faint 3s forwards;
+}
+
+.victory-text {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  width: 80%;
+}
+
+.victory-move {
+  font-size: 2rem;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+  opacity: 0;
+  animation: victoryMove 1s forwards;
+}
+
+.victory-announcement {
+  margin-top: 1rem;
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #ff4500;
+  text-shadow: 0 0 15px #ff0000;
+  opacity: 0;
+  animation: victoryAnnouncement 1s forwards 1s;
+}
+
+.victory-winner {
+  margin-top: 1rem;
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ffd700;
+  text-shadow: 0 0 20px #ffa500;
+  opacity: 0;
+  animation: victoryWinner 1.5s forwards 2s;
+}
+
+/* Fusion Animation */
+.fusion-glow {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(157, 80, 187, 0.3), transparent);
+  animation: fusionGlow 5s forwards;
+}
+
+.fusion-pokemon {
+  position: absolute;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+}
+
+.fusion-pokemon.left {
+  left: 20%;
+  top: 40%;
+  animation: fusionLeft 5s forwards;
+}
+
+.fusion-pokemon.right {
+  right: 20%;
+  top: 40%;
+  animation: fusionRight 5s forwards;
+}
+
+.fusion-energy {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: radial-gradient(circle, #ffffff, #9d50bb);
+  box-shadow: 0 0 50px #ffffff;
+  opacity: 0;
+  animation: fusionEnergy 5s forwards 1s;
+}
+
+.fusion-result {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0;
+  animation: fusionResult 2s forwards 3s;
+}
+
+.fusion-name {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-shadow: 0 0 20px #9d50bb;
+}
+
+.fusion-tagline {
+  margin-top: 1rem;
+  font-size: 1.5rem;
+  color: #e0e0e0;
+  text-shadow: 0 0 10px #9d50bb;
+}
+
+/* Animation Keyframes */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes pulseText {
+  from { transform: translate(-50%, -50%) scale(1); }
+  to { transform: translate(-50%, -50%) scale(1.1); }
+}
+
+@keyframes expandText {
+  from { transform: scale(0.5); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes expandEffect {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(3); opacity: 1; }
+  100% { transform: scale(5); opacity: 0; }
+}
+
+@keyframes attackMove {
+  0% { left: 10%; bottom: 30%; }
+  30% { left: 30%; bottom: 40%; }
+  70% { left: 60%; bottom: 40%; }
+  100% { left: 10%; bottom: 30%; }
+}
+
+@keyframes receiveHit {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; transform: translateX(10px); }
+  60% { opacity: 0.7; transform: translateX(-8px); }
+  70% { opacity: 0.6; transform: translateX(6px); }
+  80% { opacity: 0.8; transform: translateX(-4px); }
+  90% { opacity: 0.9; transform: translateX(2px); }
+  100% { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-15px); }
+  50% { transform: translateX(15px); }
+  75% { transform: translateX(-15px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes minorShake {
+  0% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  50% { transform: translateX(5px); }
+  75% { transform: translateX(-5px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes damageIndicator {
+  0% { opacity: 0; transform: translateY(0); }
+  20% { opacity: 1; transform: translateY(-20px); }
+  80% { opacity: 1; transform: translateY(-40px); }
+  100% { opacity: 0; transform: translateY(-60px); }
+}
+
+@keyframes criticalFlash {
+  0% { opacity: 0; }
+  5% { opacity: 0.8; }
+  20% { opacity: 0; }
+  25% { opacity: 0.4; }
+  30% { opacity: 0; }
+}
+
+@keyframes criticalAttack {
+  0% { left: 10%; bottom: 30%; transform: scale(1); }
+  20% { left: 20%; bottom: 35%; transform: scale(1.2); }
+  40% { left: 70%; bottom: 40%; transform: scale(1.5); }
+  60% { left: 40%; bottom: 35%; transform: scale(1.2); }
+  100% { left: 10%; bottom: 30%; transform: scale(1); }
+}
+
+@keyframes criticalHit {
+  0% { right: 10%; top: 30%; transform: scale(1) rotate(0); }
+  40% { right: 10%; top: 30%; transform: scale(1) rotate(0); }
+  50% { right: 15%; top: 25%; transform: scale(0.8) rotate(10deg); }
+  60% { right: 5%; top: 35%; transform: scale(0.8) rotate(-5deg); }
+  70% { right: 12%; top: 28%; transform: scale(0.9) rotate(3deg); }
+  80% { right: 8%; top: 32%; transform: scale(0.9) rotate(-2deg); }
+  100% { right: 10%; top: 30%; transform: scale(1) rotate(0); }
+}
+
+@keyframes criticalText {
+  0% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes criticalDamage {
+  0% { opacity: 0; transform: translateY(0) scale(1); }
+  50% { opacity: 1; transform: translateY(-30px) scale(1.5); }
+  100% { opacity: 0; transform: translateY(-60px) scale(1); }
+}
+
+@keyframes victoryFlash {
+  0% { opacity: 0; }
+  10% { opacity: 0.8; }
+  30% { opacity: 0; }
+}
+
+@keyframes victoryPose {
+  0% { left: 10%; bottom: 30%; transform: scale(1); }
+  30% { left: 50%; bottom: 30%; transform: scale(1.5); }
+  100% { left: 50%; bottom: 30%; transform: scale(1.5); }
+}
+
+@keyframes faint {
+  0% { right: 10%; top: 30%; opacity: 1; }
+  30% { right: 10%; top: 30%; opacity: 1; }
+  60% { right: 10%; top: 60%; opacity: 0.5; transform: rotate(90deg); }
+  100% { right: 10%; top: 80%; opacity: 0; transform: rotate(180deg); }
+}
+
+@keyframes victoryMove {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes victoryAnnouncement {
+  0% { opacity: 0; transform: translateY(-20px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes victoryWinner {
+  0% { opacity: 0; transform: scale(0.5); }
+  70% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fusionGlow {
+  0% { opacity: 0.2; }
+  40% { opacity: 0.6; }
+  80% { opacity: 0.8; }
+  100% { opacity: 0.4; }
+}
+
+@keyframes fusionLeft {
+  0% { left: 20%; top: 40%; opacity: 1; }
+  40% { left: 35%; top: 40%; opacity: 1; }
+  70% { left: 50%; top: 40%; opacity: 0.5; }
+  100% { left: 50%; top: 40%; opacity: 0; }
+}
+
+@keyframes fusionRight {
+  0% { right: 20%; top: 40%; opacity: 1; }
+  40% { right: 35%; top: 40%; opacity: 1; }
+  70% { right: 50%; top: 40%; opacity: 0.5; }
+  100% { right: 50%; top: 40%; opacity: 0; }
+}
+
+@keyframes fusionEnergy {
+  0% { width: 0; height: 0; opacity: 0; }
+  40% { width: 50px; height: 50px; opacity: 0.7; }
+  70% { width: 200px; height: 200px; opacity: 1; }
+  90% { width: 100px; height: 100px; opacity: 0.5; }
+  100% { width: 0; height: 0; opacity: 0; }
+}
+
+@keyframes fusionResult {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  100% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* Toast Styles */
+.battle-toast {
+  font-size: 1.2rem !important;
+  font-weight: bold !important;
+  padding: 1rem !important;
+  border-radius: 0.5rem !important;
+}
+
+.normal-toast {
+  background: linear-gradient(to right, #4b6cb7, #182848) !important;
+  color: white !important;
+}
+
+.heavy-toast {
+  background: linear-gradient(to right, #800020, #3c0000) !important;
+  color: white !important;
+}
+
+.special-toast {
+  background: linear-gradient(to right, #4b6cb7, #182848) !important;
+  color: white !important;
+  box-shadow: 0 0 15px rgba(75, 108, 183, 0.8) !important;
+}
+
+.critical-toast {
+  background: linear-gradient(to right, #ff4500, #8b0000) !important;
+  color: white !important;
+  box-shadow: 0 0 15px rgba(255, 69, 0, 0.8) !important;
+}
+
+.victory-toast {
+  background: linear-gradient(to right, #ffd700, #ff8c00) !important;
+  color: #333 !important;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.8) !important;
+}
+
+.fusion-toast {
+  background: linear-gradient(to right, #9d50bb, #6e48aa) !important;
+  color: white !important;
+  box-shadow: 0 0 15px rgba(157, 80, 187, 0.8) !important;
+}
