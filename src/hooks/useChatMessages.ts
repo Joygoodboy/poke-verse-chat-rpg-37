@@ -11,7 +11,12 @@ export const useChatMessages = () => {
     const chatRef = ref(db, "chat");
     const unsubscribe = onChildAdded(chatRef, (snapshot) => {
       const message = snapshot.val();
-      setMessages(prev => [...prev, message]);
+      // Ensure message text is a string
+      const sanitizedMessage = {
+        ...message,
+        text: typeof message.text === 'string' ? message.text : String(message.text || '')
+      };
+      setMessages(prev => [...prev, sanitizedMessage]);
     });
 
     return () => {
@@ -21,7 +26,9 @@ export const useChatMessages = () => {
 
   const broadcast = (username: string, text: string, image: string | null = null) => {
     const chatRef = ref(db, "chat");
-    push(chatRef, { user: username, text, image });
+    // Ensure text is a string before pushing to Firebase
+    const sanitizedText = typeof text === 'string' ? text : String(text || '');
+    push(chatRef, { user: username, text: sanitizedText, image });
   };
 
   return { messages, broadcast };

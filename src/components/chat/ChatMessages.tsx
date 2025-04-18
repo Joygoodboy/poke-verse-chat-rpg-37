@@ -21,23 +21,29 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({ messages, username }
       ref={chatDivRef}
       className="flex-1 overflow-y-auto p-4 bg-white/10 backdrop-blur-sm"
     >
-      {messages.map((msg, index) => (
-        <div 
-          key={index} 
-          className={`max-w-[80%] my-2 p-3 rounded-lg clear-both ${
-            msg.user === username 
-              ? "bg-blue-500/80 text-white float-right text-right" 
-              : msg.user === "System"
-                ? "bg-purple-500/80 text-white mx-auto clear-both text-center"
-                : msg.text && msg.text.includes("[BROADCAST]")
-                  ? "bg-yellow-500/80 text-white w-full clear-both text-center"
-                  : "bg-white/80 float-left text-left"
-          }`}
-        >
-          <div><strong>{msg.user}:</strong> <span dangerouslySetInnerHTML={{ __html: msg.text }} /></div>
-          {msg.image && <img src={msg.image} alt="Pokemon" className="max-w-[100px] mt-2" />}
-        </div>
-      ))}
+      {messages.map((msg, index) => {
+        // Check if the message text is a string before using includes
+        const messageText = typeof msg.text === 'string' ? msg.text : '';
+        const isBroadcast = messageText.includes("[BROADCAST]");
+        
+        return (
+          <div 
+            key={index} 
+            className={`max-w-[80%] my-2 p-3 rounded-lg clear-both ${
+              msg.user === username 
+                ? "bg-blue-500/80 text-white float-right text-right" 
+                : msg.user === "System"
+                  ? "bg-purple-500/80 text-white mx-auto clear-both text-center"
+                  : isBroadcast
+                    ? "bg-yellow-500/80 text-white w-full clear-both text-center"
+                    : "bg-white/80 float-left text-left"
+            }`}
+          >
+            <div><strong>{msg.user}:</strong> <span dangerouslySetInnerHTML={{ __html: messageText }} /></div>
+            {msg.image && <img src={msg.image} alt="Pokemon" className="max-w-[100px] mt-2" />}
+          </div>
+        );
+      })}
     </div>
   );
 };
