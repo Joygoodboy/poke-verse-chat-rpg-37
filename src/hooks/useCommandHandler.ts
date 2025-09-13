@@ -6,7 +6,12 @@ import {
   handleLogoutCommand,
   handleGiveCoinsCommand,
   handleGivePokemonCommand,
-  handleAnnouncementCommand
+  handleAnnouncementCommand,
+  handleSlugSpawnCommand,
+  handleSlugCatchCommand,
+  handleSlugArsenalCommand,
+  handleSlugHideoutCommand,
+  handleSlugInfoCommand
 } from '../utils/commandHandlers';
 import { createCommandSystem } from '../utils/gameCommands';
 
@@ -42,6 +47,25 @@ export const useCommandHandler = ({
       return;
     } else if (command === 'logout') {
       handleLogoutCommand(broadcast, logout);
+      return;
+    }
+    
+    // Handle Slugterra commands
+    if (command === 'slugspawn') {
+      handleSlugSpawnCommand(playerData, setPlayerData, broadcast);
+      return;
+    } else if (command === 'slugcatch') {
+      handleSlugCatchCommand(playerData, setPlayerData, broadcast);
+      return;
+    } else if (command === 'slugarsenal' || command === 'arsenal') {
+      handleSlugArsenalCommand(playerData, broadcast);
+      return;
+    } else if (command === 'slughideout' || command === 'hideout') {
+      handleSlugHideoutCommand(playerData, broadcast);
+      return;
+    } else if (command === 'sluginfo') {
+      const slugIndex = args[1];
+      handleSlugInfoCommand(playerData, broadcast, slugIndex);
       return;
     }
     

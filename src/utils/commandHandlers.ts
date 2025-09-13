@@ -14,6 +14,15 @@ import {
   handleSpawnCommand
 } from './commands/pokemonCommands';
 
+// Import Slugterra commands
+import {
+  handleSlugSpawnCommand,
+  handleSlugCatchCommand,
+  handleSlugArsenalCommand,
+  handleSlugHideoutCommand,
+  handleSlugInfoCommand
+} from './commands/slugterraCommands';
+
 // Import admin commands from systemCommands
 import {
   handleGiveCoinsCommand,
@@ -28,6 +37,12 @@ export {
   handleSpawnCommand,
   handleClearChatCommand,
   handleLogoutCommand,
+  // Export Slugterra commands
+  handleSlugSpawnCommand,
+  handleSlugCatchCommand,
+  handleSlugArsenalCommand,
+  handleSlugHideoutCommand,
+  handleSlugInfoCommand,
   // Export admin commands
   handleGiveCoinsCommand,
   handleGivePokemonCommand,

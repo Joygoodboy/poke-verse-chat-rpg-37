@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect } from 'react';
-import { Message } from '@/hooks/useChat';
+import { Message } from "@/types/gameTypes";
 
 interface ChatMessagesProps {
   messages: Message[];

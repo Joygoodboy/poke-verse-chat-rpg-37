@@ -7,6 +7,7 @@ import { Send } from "lucide-react";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export const ChatInput: React.FC<ChatInputProps> = ({ 
