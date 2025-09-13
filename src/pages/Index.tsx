@@ -1,6 +1,7 @@
 
 import { useEffect, useState, useRef } from "react";
-import firebase, { db } from "../firebase";
+import { db } from "../firebase";
+import { ref, onChildAdded, push } from "firebase/database";
 const ownerList = ["Ash", "yo"]; // Add usernames of owners here
 
 const PokemonRPG = () => {
@@ -49,15 +50,17 @@ const PokemonRPG = () => {
     }
 
     // Set up Firebase listener for chat messages
-    const chatRef = firebase.database().ref("chat");
-    chatRef.on("child_added", (snapshot) => {
+    const chatRef = ref(db, "chat");
+    const unsubscribe = onChildAdded(chatRef, (snapshot) => {
       const message = snapshot.val();
-      setMessages(prev => [...prev, message]);
+      if (message) {
+        setMessages(prev => [...prev, message]);
+      }
     });
 
     // Clean up listener
     return () => {
-      chatRef.off();
+      unsubscribe();
     };
   }, []);
 
@@ -85,7 +88,8 @@ const PokemonRPG = () => {
   };
 
   const broadcast = (text: string, image: string | null = null) => {
-    firebase.database().ref("chat").push({ user: username, text, image });
+    const chatRef = ref(db, "chat");
+    push(chatRef, { user: username, text, image });
   };
 
   const fetchPokemon = async (nameOrId: string | number) => {
