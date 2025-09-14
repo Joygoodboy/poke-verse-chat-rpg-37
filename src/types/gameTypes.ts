@@ -1,3 +1,4 @@
+import { SlugPlayerData } from '@/types/slugterraTypes';
 
 export interface Message {
   user: string;
@@ -39,4 +40,9 @@ export interface PlayerData {
   lastInterestClaim: number | null;
   bannedUsers: string[];
   lastRob: number | null;
+}
+
+// Extended player data interface to include slug data
+export interface ExtendedPlayerData extends PlayerData {
+  slugData?: SlugPlayerData;
 }

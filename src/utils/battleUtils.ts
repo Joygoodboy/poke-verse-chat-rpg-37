@@ -1,5 +1,5 @@
 
-import { Pokemon } from "@/components/chat/PlayerInfo";
+import { Pokemon } from "@/types/gameTypes";
 
 // Calculate damage for a Pokémon attack
 export const calculateDamage = (
@@ -41,11 +41,7 @@ export const calculateDamage = (
   damage *= randomFactor;
 
   // Round to nearest integer
-  return {
-    damage: Math.max(1, Math.floor(damage)),
-    isCritical,
-    effectiveness
-  };
+  return Math.max(1, Math.floor(damage));
 };
 
 export const getMoveList = (pokemon: Pokemon): string[] => {
@@ -348,6 +344,7 @@ export const generateRandomPokemon = (minLevel: number = 1, maxLevel: number = 1
     defense: Math.floor(baseDefense * randomFactor),
     speed: Math.floor(baseSpeed * randomFactor),
     moves: getMoveList({ name: pokemonName, level, type } as Pokemon).slice(0, 4),
+    image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 898) + 1}.png`,
     xp: 0
   };
 };

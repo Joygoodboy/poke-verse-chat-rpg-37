@@ -77,7 +77,23 @@ export const CommandButtons: React.FC<CommandButtonProps> = ({
         disabled={disabled}
       />
       
-      <CommandGroup 
+        {/* Slug Battle Integration */}
+        <CommandGroup 
+          title="Slugs" 
+          commands={[
+            { name: "slugspawn", icon: <MessageSquare size={16} /> },
+            { name: "slugcatch", icon: <MessageSquare size={16} /> },
+            { name: "slugarsenal", icon: <MessageSquare size={16} /> },
+            { name: "slugchallenge", icon: <Sword size={16} /> },
+            { name: "slugtrain", icon: <Sword size={16} /> }
+          ]}
+          onCommandClick={onCommandClick}
+          variant="secondary"
+          icon={<MessageSquare size={16} />}
+          disabled={disabled}
+        />
+        
+        <CommandGroup 
         title="Battle" 
         commands={battleCommands}
         onCommandClick={onCommandClick}
@@ -108,7 +124,7 @@ interface CommandGroupProps {
   }>;
   onCommandClick: (command: string) => void;
   className?: string;
-  variant?: "default" | "secondary" | "outline" | "primary";
+  variant?: "default" | "secondary" | "outline" | "destructive" | "ghost" | "link";
   icon?: React.ReactNode;
   disabled?: boolean;
 }

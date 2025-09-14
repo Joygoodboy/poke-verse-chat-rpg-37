@@ -1,7 +1,7 @@
 
 import { BattleFusionSystem, BattlePokemon } from "../battleFusion";
 import { EnhancedBattleSystem } from "../enhancedBattleSystem";
-import { CommandHandler } from "../commandHandlers";
+import { CommandHandler } from "./commandTypes";
 import { CommentaryType, battleCommentary } from "../battleCommentary";
 import { toast } from "sonner";
 

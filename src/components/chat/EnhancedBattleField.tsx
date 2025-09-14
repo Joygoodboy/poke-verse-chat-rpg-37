@@ -1,13 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-import { usePlayerData } from '../../hooks/usePlayerData';
-import { usePokemonBattle } from '../../hooks/usePokemonBattle';
-import { useCommandHandler } from '../../hooks/useCommandHandler';
-import { BattleFusionSystem, BattlePokemon } from '../../utils/battleFusion';
-import { playBattleAnimation, AnimationType } from '../../utils/battleAnimations';
-import { battleCommentary, CommentaryType } from '../../utils/battleCommentary';
-import '../../utils/battleAnimations.css';
-import { Pokemon } from '@/types/gameTypes';
+import React, { useState } from 'react';
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { usePlayerData } from '@/hooks/usePlayerData';
+import { usePokemonBattle } from '@/hooks/usePokemonBattle';
+import { useCommandHandler } from '@/hooks/useCommandHandler';
 
 interface EnhancedBattleFieldProps {
   battle: any;
@@ -17,7 +15,7 @@ interface EnhancedBattleFieldProps {
   onPokemonStats: () => void;
 }
 
-// Enhanced battle field with visual effects and fusion
+// Enhanced battle field with visual effects
 const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
   battle,
   username,
@@ -25,349 +23,199 @@ const EnhancedBattleField: React.FC<EnhancedBattleFieldProps> = ({
   onForfeit,
   onPokemonStats
 }) => {
-  const { playerData } = usePlayerData();
-  const { 
-    playerPokemon, 
-    opponentPokemon, 
-    battleActive, 
-    playerHealth, 
-    opponentHealth,
-    playerMaxHealth,
-    opponentMaxHealth,
-    attackOpponent,
-    endBattle
-  } = usePokemonBattle(username);
+  const { playerData } = usePlayerData(username);
+  const battleHook = usePokemonBattle(username);
+  const [showMoveDetails, setShowMoveDetails] = useState(false);
   
-  const { executeCommand } = useCommandHandler({
+  // Extract battle data from the hook's activeBattle property
+  const playerPokemon = battleHook.activeBattle?.challenger === username ? 
+    battleHook.activeBattle.challengerPokemon : battleHook.activeBattle?.opponentPokemon;
+  const opponentPokemon = battleHook.activeBattle?.challenger === username ? 
+    battleHook.activeBattle.opponentPokemon : battleHook.activeBattle?.challengerPokemon;
+  const battleActive = battleHook.activeBattle?.isActive || false;
+  
+  const { handleCommand } = useCommandHandler({
     username,
     playerData: playerData || {},
-    setPlayerData: () => {}, // Placeholder function since we're just using this for executeCommand
-    broadcast: () => {}, // Placeholder function
-    logout: () => {}, // Placeholder function
+    setPlayerData: () => {},
+    broadcast: () => {},
+    logout: () => {},
     isAdmin: false,
     isOwner: false
   });
-  
-  const [showFusionUI, setShowFusionUI] = useState(false);
-  const [selectedForFusion, setSelectedForFusion] = useState<number[]>([]);
-  const [showMoveDetails, setShowMoveDetails] = useState(false);
-  
-  const fusionSystem = new BattleFusionSystem();
-  
-  useEffect(() => {
-    if (battleActive && playerPokemon) {
-      setTimeout(() => {
-        toast.info("Try epic moves or fusion during battle!", { 
-          duration: 5000,
-          position: "bottom-center"
-        });
-      }, 2000);
-    }
-  }, [battleActive, playerPokemon]);
-  
-  const handleAttack = async (moveName: string) => {
-    if (!battleActive || !playerPokemon || !opponentPokemon) return;
-    
-    const moveIndex = playerPokemon.moves.findIndex(move => move === moveName);
-    if (moveIndex >= 0) {
-      onMoveSelect(moveIndex);
-    }
-    
-    const isSpecialMove = moveName.includes('Special') || 
-      moveName.includes('Hyper') || 
-      moveName.includes('Fusion') ||
-      moveName.includes('Beam') ||
-      moveName.includes('Blast');
-      
-    const isCritical = Math.random() < 0.2;
-    
-    const baseDamage = isSpecialMove ? 30 : 15;
-    const criticalMultiplier = isCritical ? 1.5 : 1.0;
-    const damage = Math.floor(baseDamage * criticalMultiplier);
-    
-    let animationType = AnimationType.NORMAL_ATTACK;
-    
-    if (isCritical) {
-      animationType = AnimationType.CRITICAL_HIT;
-    } else if (isSpecialMove) {
-      animationType = AnimationType.SPECIAL_ATTACK;
-    } else if (moveName.includes('Heavy') || moveName.includes('Slam')) {
-      animationType = AnimationType.HEAVY_ATTACK;
-    }
-    
-    await playBattleAnimation(animationType, {
-      attacker: playerPokemon.name,
-      defender: opponentPokemon.name,
-      moveName: moveName,
-      damage: damage,
-      effectiveness: isCritical ? "super effective" : "normal"
-    });
-    
-    attackOpponent(damage);
-    
-    if (opponentHealth - damage <= 0) {
-      setTimeout(async () => {
-        await playBattleAnimation(AnimationType.VICTORY, {
-          attacker: playerPokemon.name,
-          defender: opponentPokemon.name,
-          moveName: moveName
-        });
-        
-        endBattle();
-      }, 500);
-    }
-  };
-  
-  const handleSwitch = async () => {
-    executeCommand('/switch', ['']);
-  };
-  
-  const handleFusion = async () => {
-    setShowFusionUI(!showFusionUI);
-    setSelectedForFusion([]);
-  };
-  
-  const selectForFusion = (index: number) => {
-    if (selectedForFusion.includes(index)) {
-      setSelectedForFusion(selectedForFusion.filter(i => i !== index));
-    } else {
-      if (selectedForFusion.length < 3) {
-        setSelectedForFusion([...selectedForFusion, index]);
-      } else {
-        toast.warning("Maximum 3 Pokemon can be fused together");
-      }
-    }
-  };
-  
-  const executeFusion = async () => {
-    if (selectedForFusion.length < 2) {
-      toast.error("Select at least 2 Pokemon for fusion");
-      return;
-    }
-    
-    const fusionArgs = selectedForFusion.map(index => (index + 1).toString());
-    executeCommand('/fuse', fusionArgs);
-    
-    setShowFusionUI(false);
-    setSelectedForFusion([]);
-  };
-  
-  const toggleMoveDetails = () => {
-    setShowMoveDetails(!showMoveDetails);
-  };
-
-  const handlePokemonStats = () => {
-    onPokemonStats();
-  };
 
   if (!battleActive || !playerPokemon || !opponentPokemon) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center">
-          <p className="text-gray-500">No active battle</p>
-          <button 
-            className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            onClick={() => executeCommand('/battle', [])}
-          >
-            Start Battle
-          </button>
-        </div>
+        <Card className="p-8 text-center">
+          <h3 className="text-xl font-bold mb-4">No Active Battle</h3>
+          <p className="text-muted-foreground">
+            Use /pokemonchallenge to start a battle!
+          </p>
+        </Card>
       </div>
     );
   }
 
+  const handleAttack = (moveIndex: number) => {
+    if (battleHook.executeMove) {
+      battleHook.executeMove(moveIndex, () => {});
+    }
+    onMoveSelect(moveIndex);
+  };
+
   return (
-    <div className="p-4 bg-gradient-to-b from-blue-900 to-purple-900 rounded-lg shadow-lg h-full">
-      <div className="relative h-72 mb-4 overflow-hidden bg-gradient-to-b from-green-800 to-green-600 rounded-lg">
-        <div className="absolute top-4 right-4 w-40 h-40 flex items-center justify-center">
-          <div className="transform hover:scale-110 transition-transform">
-            <img 
-              src={opponentPokemon.sprite || "https://via.placeholder.com/96"} 
-              alt={opponentPokemon.name} 
-              className="w-32 h-32 object-contain animate-pulse"
-            />
-          </div>
-        </div>
-        
-        <div className="absolute bottom-4 left-4 w-40 h-40 flex items-center justify-center">
-          <div className="transform hover:scale-110 transition-transform">
-            <img 
-              src={playerPokemon.sprite || "https://via.placeholder.com/96"} 
-              alt={playerPokemon.name} 
-              className="w-32 h-32 object-contain"
-            />
-          </div>
-        </div>
-        
-        <div className="absolute top-2 left-2 w-1/3">
-          <div className="text-sm font-bold text-white mb-1">
-            {opponentPokemon.name} Lv.{opponentPokemon.level || '??'}
-          </div>
-          <div className="h-2 w-full bg-gray-300 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-red-500 to-red-600"
-              style={{ width: `${(opponentHealth / opponentMaxHealth) * 100}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-white mt-1">
-            {opponentHealth}/{opponentMaxHealth} HP
-          </div>
-        </div>
-        
-        <div className="absolute bottom-2 right-2 w-1/3">
-          <div className="text-sm font-bold text-white mb-1">
-            {playerPokemon.name} Lv.{playerPokemon.level || '50'}
-          </div>
-          <div className="h-2 w-full bg-gray-300 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-green-500 to-green-600"
-              style={{ width: `${(playerHealth / playerMaxHealth) * 100}%` }}
-            ></div>
-          </div>
-          <div className="text-xs text-white mt-1">
-            {playerHealth}/{playerMaxHealth} HP
-          </div>
-        </div>
+    <div className="h-full flex flex-col bg-gradient-to-b from-blue-50 to-purple-100 dark:from-blue-950 dark:to-purple-950">
+      {/* Header */}
+      <div className="p-4 border-b bg-white/50 dark:bg-gray-900/50">
+        <h2 className="text-2xl font-bold text-center text-blue-800 dark:text-blue-200">
+          ⚔️ Pokémon Battle Arena ⚔️
+        </h2>
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+          {battleHook.activeBattle.challenger} vs {battleHook.activeBattle.opponent}
+        </p>
       </div>
-      
-      <div className="grid grid-cols-2 gap-2 mb-4">
-        <button
-          onClick={() => handleAttack(playerPokemon.moves[0] || "Tackle")}
-          className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded transition-colors"
-        >
-          Attack
-        </button>
-        <button
-          onClick={handleSwitch}
-          className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded transition-colors"
-        >
-          Switch
-        </button>
-        <button
-          onClick={handleFusion}
-          className="bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded transition-colors"
-        >
-          Fusion
-        </button>
-        <button
-          onClick={toggleMoveDetails}
-          className="bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded transition-colors"
-        >
-          {showMoveDetails ? "Hide Moves" : "Show Moves"}
-        </button>
-      </div>
-      
-      {showMoveDetails && (
-        <div className="mb-4 p-3 bg-gray-800 bg-opacity-70 rounded-lg">
-          <h3 className="text-white font-bold mb-2">Moves:</h3>
-          <div className="grid grid-cols-2 gap-2">
-            {playerPokemon.moves && playerPokemon.moves.length > 0 ? (
-              playerPokemon.moves.map((move, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleAttack(move)}
-                  className={`py-1 px-2 rounded text-sm text-white transition-colors ${
-                    index % 4 === 0 ? "bg-red-500 hover:bg-red-600" :
-                    index % 4 === 1 ? "bg-blue-500 hover:bg-blue-600" :
-                    index % 4 === 2 ? "bg-green-500 hover:bg-green-600" :
-                    "bg-yellow-500 hover:bg-yellow-600"
-                  }`}
-                >
-                  {move}
-                </button>
-              ))
-            ) : (
-              <span className="text-gray-400 col-span-2">No moves available</span>
-            )}
-          </div>
-        </div>
-      )}
-      
-      {showFusionUI && playerData && playerData.pokemon && (
-        <div className="mb-4 p-3 bg-indigo-900 bg-opacity-70 rounded-lg">
-          <h3 className="text-white font-bold mb-2">Select Pokemon for Fusion:</h3>
-          <div className="grid grid-cols-3 gap-2">
-            {playerData.pokemon.map((pokemon: Pokemon, index: number) => (
-              <div 
-                key={index}
-                onClick={() => selectForFusion(index)}
-                className={`p-2 rounded cursor-pointer transition-all ${
-                  selectedForFusion.includes(index) 
-                    ? "bg-indigo-600 border-2 border-white" 
-                    : "bg-indigo-800 hover:bg-indigo-700"
-                }`}
-              >
-                <img 
-                  src={pokemon.image || "https://via.placeholder.com/48"} 
-                  alt={pokemon.name}
-                  className="w-12 h-12 object-contain mx-auto"
+
+      {/* Battle Field */}
+      <div className="flex-1 p-4">
+        <div className="grid grid-cols-2 gap-4 h-full">
+          {/* Player Pokémon */}
+          <Card className="p-4 bg-white/80 dark:bg-gray-900/80">
+            <div className="text-center">
+              <h3 className="text-lg font-bold mb-2">{playerPokemon.name}</h3>
+              <img 
+                src={playerPokemon.image || '/placeholder.svg'} 
+                alt={playerPokemon.name}
+                className="w-24 h-24 mx-auto rounded-lg shadow-lg mb-2"
+              />
+              <Badge variant="secondary">Level {playerPokemon.level}</Badge>
+              
+              {/* Health Bar */}
+              <div className="mt-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>HP</span>
+                  <span>{playerPokemon.health}/{playerPokemon.maxHealth}</span>
+                </div>
+                <Progress 
+                  value={(playerPokemon.health / playerPokemon.maxHealth) * 100}
+                  className="h-3"
                 />
-                <div className="text-xs text-center text-white mt-1">{pokemon.name}</div>
               </div>
-            ))}
-          </div>
-          <div className="mt-3 flex justify-center">
-            <button
-              onClick={executeFusion}
-              disabled={selectedForFusion.length < 2}
-              className={`py-2 px-4 rounded text-white ${
-                selectedForFusion.length < 2 
-                  ? "bg-gray-500 cursor-not-allowed" 
-                  : "bg-indigo-600 hover:bg-indigo-700"
-              }`}
+
+              {/* Type Badge */}
+              {playerPokemon.type && (
+                <Badge 
+                  className={`mt-2 bg-blue-500 text-white`}
+                >
+                  {playerPokemon.type}
+                </Badge>
+              )}
+            </div>
+          </Card>
+
+          {/* Opponent Pokémon */}
+          <Card className="p-4 bg-white/80 dark:bg-gray-900/80">
+            <div className="text-center">
+              <h3 className="text-lg font-bold mb-2">{opponentPokemon.name}</h3>
+              <img 
+                src={opponentPokemon.image || '/placeholder.svg'} 
+                alt={opponentPokemon.name}
+                className="w-24 h-24 mx-auto rounded-lg shadow-lg mb-2"
+              />
+              <Badge variant="secondary">Level {opponentPokemon.level}</Badge>
+              
+              {/* Health Bar */}
+              <div className="mt-3">
+                <div className="flex justify-between text-sm mb-1">
+                  <span>HP</span>
+                  <span>{opponentPokemon.health}/{opponentPokemon.maxHealth}</span>
+                </div>
+                <Progress 
+                  value={(opponentPokemon.health / opponentPokemon.maxHealth) * 100}
+                  className="h-3"
+                />
+              </div>
+
+              {/* Type Badge */}
+              {opponentPokemon.type && (
+                <Badge 
+                  className={`mt-2 bg-red-500 text-white`}
+                >
+                  {opponentPokemon.type}
+                </Badge>
+              )}
+            </div>
+          </Card>
+        </div>
+
+        {/* Battle Controls */}
+        <Card className="mt-4 p-4 bg-white/90 dark:bg-gray-900/90">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Button
+              onClick={() => setShowMoveDetails(!showMoveDetails)}
+              variant="default"
             >
-              Fuse Pokemon ({selectedForFusion.length}/3)
-            </button>
+              {showMoveDetails ? 'Hide Moves' : 'Show Moves'}
+            </Button>
+            
+            <Button
+              onClick={onPokemonStats}
+              variant="secondary"
+            >
+              Pokémon Stats
+            </Button>
+            
+            <Button
+              onClick={() => handleCommand('/switch')}
+              variant="outline"
+            >
+              Switch
+            </Button>
+            
+            <Button
+              onClick={onForfeit}
+              variant="destructive"
+            >
+              Forfeit
+            </Button>
           </div>
-        </div>
-      )}
-      
-      <div className="p-3 bg-gray-800 bg-opacity-70 rounded-lg">
-        <div className="flex justify-between items-center">
-          <div>
-            <span className="text-xs text-gray-400">Your Pokemon:</span>
-            <h3 className="text-white font-bold">{playerPokemon.name}</h3>
-            <div className="flex space-x-1 mt-1">
-              {playerPokemon.types?.map((type, index) => (
-                <span 
+
+          {/* Move Selection */}
+          {showMoveDetails && playerPokemon.moves && (
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {playerPokemon.moves.map((move, index) => (
+                <Button
                   key={index}
-                  className={`text-xs px-2 py-0.5 rounded ${
-                    type.toLowerCase() === 'fire' ? 'bg-red-500' :
-                    type.toLowerCase() === 'water' ? 'bg-blue-500' :
-                    type.toLowerCase() === 'grass' ? 'bg-green-500' :
-                    type.toLowerCase() === 'electric' ? 'bg-yellow-500' :
-                    type.toLowerCase() === 'psychic' ? 'bg-pink-500' :
-                    'bg-gray-500'
-                  }`}
+                  variant="outline"
+                  onClick={() => handleAttack(index)}
+                  disabled={battleHook.activeBattle.turn !== username}
+                  className="text-left p-3 h-auto"
                 >
-                  {type}
-                </span>
+                  <div>
+                    <div className="font-medium">
+                      {typeof move === 'object' ? move.name : move}
+                    </div>
+                    {typeof move === 'object' && (
+                      <div className="text-xs text-muted-foreground">
+                        Power: {move.power} | Acc: {move.accuracy}%
+                      </div>
+                    )}
+                  </div>
+                </Button>
               ))}
             </div>
+          )}
+
+          {/* Turn Indicator */}
+          <div className="mt-4 text-center">
+            <p className="text-sm font-medium">
+              {battleHook.activeBattle.turn === username ? 
+                "Your turn!" : 
+                `Waiting for ${battleHook.activeBattle.turn}...`
+              }
+            </p>
           </div>
-          
-          <div className="text-right">
-            <span className="text-xs text-gray-400">Opponent:</span>
-            <h3 className="text-white font-bold">{opponentPokemon.name}</h3>
-            <div className="flex space-x-1 mt-1 justify-end">
-              {opponentPokemon.types?.map((type, index) => (
-                <span 
-                  key={index}
-                  className={`text-xs px-2 py-0.5 rounded ${
-                    type.toLowerCase() === 'fire' ? 'bg-red-500' :
-                    type.toLowerCase() === 'water' ? 'bg-blue-500' :
-                    type.toLowerCase() === 'grass' ? 'bg-green-500' :
-                    type.toLowerCase() === 'electric' ? 'bg-yellow-500' :
-                    type.toLowerCase() === 'psychic' ? 'bg-pink-500' :
-                    'bg-gray-500'
-                  }`}
-                >
-                  {type}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
+        </Card>
       </div>
     </div>
   );

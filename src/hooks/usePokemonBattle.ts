@@ -10,7 +10,7 @@ export interface PokemonMove {
   accuracy: number;
 }
 
-export interface BattlePokemon extends Pokemon {
+export interface BattlePokemon extends Omit<Pokemon, 'moves'> {
   health: number;
   maxHealth: number;
   moves: PokemonMove[];

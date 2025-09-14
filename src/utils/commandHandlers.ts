@@ -23,6 +23,13 @@ import {
   handleSlugInfoCommand
 } from './commands/slugterraCommands';
 
+import {
+  handleSlugChallengeCommand,
+  handleSlugBattleCommand,
+  handleSlugTrainCommand,
+  handleSlugFuseCommand
+} from './commands/slugterraBattleCommands';
+
 // Import admin commands from systemCommands
 import {
   handleGiveCoinsCommand,
@@ -43,6 +50,10 @@ export {
   handleSlugArsenalCommand,
   handleSlugHideoutCommand,
   handleSlugInfoCommand,
+  handleSlugChallengeCommand,
+  handleSlugBattleCommand,
+  handleSlugTrainCommand,
+  handleSlugFuseCommand,
   // Export admin commands
   handleGiveCoinsCommand,
   handleGivePokemonCommand,

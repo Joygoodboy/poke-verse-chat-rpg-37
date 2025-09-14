@@ -214,10 +214,7 @@ export class BattleCommentary {
   }
 }
 
-// Create singleton instance
-export const battleCommentary = new BattleFeedbackSingleton();
-
-// Singleton implementation for global access
+// Singleton implementation for global access  
 class BattleFeedbackSingleton {
   private commentary: BattleCommentary;
   
@@ -229,3 +226,6 @@ class BattleFeedbackSingleton {
     return this.commentary.comment(type, options);
   }
 }
+
+// Create singleton instance
+export const battleCommentary = new BattleFeedbackSingleton();

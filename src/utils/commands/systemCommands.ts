@@ -26,6 +26,17 @@ export const handleHelpCommand = (broadcast: (text: string) => void) => {
 /rb - Start a random battle
 /release [index] - Release a Pokémon
 
+**🐌 Slugterra:**
+/slugspawn - Spawn a wild slug
+/slugcatch - Try to catch a spawned slug
+/slugarsenal or /arsenal - View your slugs
+/slughideout or /hideout - View slugs in hideout
+/sluginfo [number] - View detailed slug info
+/slugchallenge [username] or /slugduel [username] - Challenge to slug battle
+/slugbattle [move-number] - Use a move in slug battle
+/slugtrain [number] - Train a specific slug (costs energy)
+/slugfuse [slug1] [slug2] - Fuse two slugs together
+
 **⚔️ Battle:**
 /pokemonchallenge [username] or /pch [username] - Challenge player to a battle
 /challenge accept or /ch accept - Accept a challenge

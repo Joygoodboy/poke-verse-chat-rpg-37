@@ -11,7 +11,11 @@ import {
   handleSlugCatchCommand,
   handleSlugArsenalCommand,
   handleSlugHideoutCommand,
-  handleSlugInfoCommand
+  handleSlugInfoCommand,
+  handleSlugChallengeCommand,
+  handleSlugBattleCommand,
+  handleSlugTrainCommand,
+  handleSlugFuseCommand
 } from '../utils/commandHandlers';
 import { createCommandSystem } from '../utils/gameCommands';
 
@@ -66,6 +70,23 @@ export const useCommandHandler = ({
     } else if (command === 'sluginfo') {
       const slugIndex = args[1];
       handleSlugInfoCommand(playerData, broadcast, slugIndex);
+      return;
+    } else if (command === 'slugchallenge' || command === 'slugduel') {
+      const opponent = args[1];
+      handleSlugChallengeCommand(playerData, setPlayerData, broadcast, opponent, username);
+      return;
+    } else if (command === 'slugbattle') {
+      const moveIndex = args[1];
+      handleSlugBattleCommand(playerData, setPlayerData, broadcast, moveIndex, username);
+      return;
+    } else if (command === 'slugtrain') {
+      const slugIndex = args[1];
+      handleSlugTrainCommand(playerData, setPlayerData, broadcast, slugIndex);
+      return;
+    } else if (command === 'slugfuse') {
+      const slug1Index = args[1];
+      const slug2Index = args[2];
+      handleSlugFuseCommand(playerData, setPlayerData, broadcast, slug1Index, slug2Index);
       return;
     }
     

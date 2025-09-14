@@ -1,9 +1,6 @@
 
-import { systemCommands } from './systemCommands';
-import { pokemonCommands } from './pokemonCommands';
-import { economyCommands } from './economyCommands';
+import { systemCommands, pokemonCommands, economyCommands, CommandHandler } from './commandTypes';
 import { enhancedBattleCommands } from './enhancedBattleCommands';
-import { CommandHandler } from '../commandHandlers';
 
 // Extended commands object with our new enhanced battle commands
 export const commands: Record<string, CommandHandler> = {
